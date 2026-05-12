@@ -107,18 +107,6 @@
     <h2>Join a session</h2>
     <p class="sub">Enter the session code your trainer shared with you.</p>
 
-    <div class="firebase-note">
-      <p><strong>Note:</strong> Use the same Firebase project as your trainer. Ask your trainer for the Firebase config details.</p>
-    </div>
-
-    <div class="form-group">
-      <label>Firebase API Key</label>
-      <input type="text" id="fb-apikey" placeholder="AIza..."/>
-    </div>
-    <div class="form-group">
-      <label>Database URL</label>
-      <input type="text" id="fb-dburl" placeholder="https://your-project-default-rtdb.firebaseio.com"/>
-    </div>
     <div class="form-group">
       <label>Your name</label>
       <input type="text" id="name-input" placeholder="e.g. Priya"/>
@@ -178,18 +166,24 @@ function show(id) {
 }
 
 function joinSession() {
-  const apiKey = document.getElementById('fb-apikey').value.trim();
-  const databaseURL = document.getElementById('fb-dburl').value.trim();
   const name = document.getElementById('name-input').value.trim();
   const code = document.getElementById('code-input').value.trim().toUpperCase();
 
-  if (!apiKey || !databaseURL) { showToast('Enter Firebase details'); return; }
   if (!name) { showToast('Enter your name'); return; }
   if (!code || code.length !== 6) { showToast('Enter the 6-character code'); return; }
 
   try {
-    if (firebase.apps.length) firebase.app().delete();
-    firebase.initializeApp({ apiKey, databaseURL, projectId: databaseURL.split('//')[1].split('-default')[0] });
+    if (!firebase.apps.length) {
+      firebase.initializeApp({
+        apiKey: "AIzaSyAsBWw9Kj2V21Z78Au6CieeTKC8tTPNJsE",
+        authDomain: "trainingpolls-884c9.firebaseapp.com",
+        databaseURL: "https://trainingpolls-884c9-default-rtdb.firebaseio.com",
+        projectId: "trainingpolls-884c9",
+        storageBucket: "trainingpolls-884c9.firebasestorage.app",
+        messagingSenderId: "892105298380",
+        appId: "1:892105298380:web:ad9bcfd8d59ad94648cd69"
+      });
+    }
     db = firebase.database();
   } catch(e) { showToast('Firebase error: ' + e.message); return; }
 
