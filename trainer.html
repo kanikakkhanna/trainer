@@ -1,0 +1,520 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>PollRoom — Trainer</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d0d0f;
+    --surface: #16161a;
+    --surface2: #1e1e24;
+    --border: rgba(255,255,255,0.07);
+    --accent: #7c6af7;
+    --accent2: #f7a26a;
+    --text: #f0eff4;
+    --muted: #8a8899;
+    --green: #5cf0a0;
+    --red: #f05c7a;
+    --radius: 12px;
+    --font: 'Sora', sans-serif;
+    --mono: 'DM Mono', monospace;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+
+  /* CONFIG SCREEN */
+  #config-screen { display: flex; flex-direction: column; min-height: 100vh; }
+  .top-bar { padding: 1.25rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
+  .logo { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
+  .logo span { color: var(--accent); }
+  .role-badge { font-size: 11px; font-family: var(--mono); background: rgba(124,106,247,0.15); color: var(--accent); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(124,106,247,0.3); }
+
+  .main-layout { display: grid; grid-template-columns: 1fr 420px; gap: 0; flex: 1; }
+  .panel { padding: 2rem; }
+  .panel.left { border-right: 1px solid var(--border); }
+
+  h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); }
+  h3 { font-size: 0.85rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+
+  .form-group { margin-bottom: 1rem; }
+  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; font-family: var(--mono); }
+  input, textarea, select {
+    width: 100%; padding: 10px 14px; background: var(--surface2);
+    border: 1px solid var(--border); border-radius: 8px;
+    color: var(--text); font-family: var(--font); font-size: 14px;
+    outline: none; transition: border .2s;
+  }
+  input:focus, textarea:focus { border-color: var(--accent); }
+  textarea { resize: vertical; min-height: 70px; }
+
+  .options-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
+  .option-row { display: flex; gap: 8px; align-items: center; }
+  .option-row input { flex: 1; }
+  .option-color { width: 32px; height: 38px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; padding: 2px; background: var(--surface2); }
+  .remove-btn { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all .15s; }
+  .remove-btn:hover { background: rgba(240,92,122,0.12); border-color: var(--red); color: var(--red); }
+
+  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-family: var(--font); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
+  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
+  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
+  .btn-accent { background: var(--accent); color: #fff; }
+  .btn-accent:hover { opacity: .85; }
+  .btn-green { background: rgba(92,240,160,0.12); color: var(--green); border: 1px solid rgba(92,240,160,0.25); }
+  .btn-green:hover { background: rgba(92,240,160,0.2); }
+  .btn-red { background: rgba(240,92,122,0.12); color: var(--red); border: 1px solid rgba(240,92,122,0.25); }
+  .btn-red:hover { background: rgba(240,92,122,0.2); }
+  .btn:disabled { opacity: .4; cursor: not-allowed; }
+
+  .row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+
+  /* QUESTION LIST */
+  .q-list { display: flex; flex-direction: column; gap: 8px; }
+  .q-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: space-between; }
+  .q-item:hover { border-color: rgba(124,106,247,0.4); }
+  .q-item.active { border-color: var(--accent); background: rgba(124,106,247,0.08); }
+  .q-item-text { font-size: 14px; font-weight: 500; flex: 1; }
+  .q-item-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 3px; }
+  .q-actions { display: flex; gap: 6px; }
+  .icon-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all .15s; }
+  .icon-btn:hover { background: var(--surface); color: var(--text); }
+  .icon-btn.del:hover { border-color: var(--red); color: var(--red); background: rgba(240,92,122,0.08); }
+
+  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
+  .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .empty-state p { font-size: 14px; }
+
+  /* SESSION PANEL */
+  .session-panel { display: flex; flex-direction: column; gap: 1.5rem; }
+  .firebase-config { background: var(--surface2); border: 1px solid rgba(247,162,106,0.3); border-radius: var(--radius); padding: 1rem; }
+  .firebase-config h3 { color: var(--accent2); margin-bottom: 0.5rem; }
+  .firebase-config p { font-size: 12px; color: var(--muted); margin-bottom: 0.75rem; line-height: 1.6; }
+  .firebase-config a { color: var(--accent); text-decoration: none; }
+
+  .session-code-box { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; text-align: center; }
+  .session-code { font-family: var(--mono); font-size: 3rem; font-weight: 500; letter-spacing: 0.15em; color: var(--accent); line-height: 1; }
+  .session-code-label { font-size: 12px; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
+  .participants-count { margin-top: 1rem; font-size: 13px; color: var(--muted); }
+  .participants-count strong { color: var(--green); }
+
+  .active-q-info { background: rgba(124,106,247,0.08); border: 1px solid rgba(124,106,247,0.2); border-radius: var(--radius); padding: 1rem; }
+  .active-q-info .q-text { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
+  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
+  .status-dot.live { background: var(--green); box-shadow: 0 0 0 3px rgba(92,240,160,0.2); animation: pulse 1.5s infinite; }
+  .status-dot.waiting { background: var(--accent2); }
+  .status-dot.closed { background: var(--muted); }
+  @keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(92,240,160,0.2)}50%{box-shadow:0 0 0 6px rgba(92,240,160,0.05)} }
+
+  /* LIVE RESULTS SCREEN */
+  #results-screen { display: none; flex-direction: column; min-height: 100vh; }
+  .results-layout { display: grid; grid-template-columns: 1fr 320px; flex: 1; }
+  .chart-area { padding: 2rem; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  .chart-area h2 { font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.4; }
+  .chart-wrap { flex: 1; position: relative; min-height: 300px; }
+  .results-sidebar { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
+  .vote-tally { display: flex; flex-direction: column; gap: 8px; }
+  .tally-row { display: flex; align-items: center; gap: 10px; }
+  .tally-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+  .tally-label { flex: 1; font-size: 13px; }
+  .tally-count { font-family: var(--mono); font-size: 14px; font-weight: 500; }
+  .tally-pct { font-size: 12px; color: var(--muted); font-family: var(--mono); min-width: 36px; text-align: right; }
+  .total-votes { font-family: var(--mono); font-size: 2rem; font-weight: 500; color: var(--accent); }
+  .total-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+
+  .divider { height: 1px; background: var(--border); }
+
+  /* NOTIFICATION */
+  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; z-index: 999; animation: slideIn .3s ease; }
+  @keyframes slideIn { from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1} }
+
+  @media(max-width:800px){
+    .main-layout,.results-layout{grid-template-columns:1fr}
+    .panel.left,.chart-area{border-right:none;border-bottom:1px solid var(--border)}
+  }
+</style>
+</head>
+<body>
+
+<!-- CONFIG SCREEN -->
+<div id="config-screen">
+  <div class="top-bar">
+    <div class="logo">Poll<span>Room</span></div>
+    <span class="role-badge">Trainer Dashboard</span>
+  </div>
+
+  <div class="main-layout">
+    <!-- LEFT: Question Builder -->
+    <div class="panel left">
+      <h2>Question Builder</h2>
+
+      <div class="form-group">
+        <label>Question text</label>
+        <textarea id="q-text" placeholder="e.g. What is the most important part of active listening?"></textarea>
+      </div>
+
+      <h3>Answer Options</h3>
+      <div class="options-grid" id="options-grid">
+        <div class="option-row">
+          <input type="text" placeholder="Option A" class="opt-input"/>
+          <input type="color" class="option-color" value="#7c6af7"/>
+          <button class="remove-btn" onclick="removeOption(this)">×</button>
+        </div>
+        <div class="option-row">
+          <input type="text" placeholder="Option B" class="opt-input"/>
+          <input type="color" class="option-color" value="#f7a26a"/>
+          <button class="remove-btn" onclick="removeOption(this)">×</button>
+        </div>
+      </div>
+
+      <div class="row-btns" style="margin-bottom:1.5rem">
+        <button class="btn btn-ghost" onclick="addOption()">+ Add option</button>
+        <button class="btn btn-accent" onclick="addQuestion()">Save question</button>
+      </div>
+
+      <div class="divider" style="margin-bottom:1.5rem"></div>
+
+      <h2>Questions <span id="q-count" style="color:var(--muted);font-weight:400;font-size:0.85rem"></span></h2>
+      <div class="q-list" id="q-list">
+        <div class="empty-state">
+          <div class="icon">📋</div>
+          <p>No questions yet.<br/>Build your first one above.</p>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Session Controls -->
+    <div class="panel">
+      <div class="session-panel">
+
+        <div class="firebase-config" id="fb-config-box">
+          <h3>⚙ Firebase Setup</h3>
+          <p>Paste your Firebase config below. Get it from <a href="https://console.firebase.google.com" target="_blank">console.firebase.google.com</a> → Project Settings → Web App → SDK config.</p>
+          <div class="form-group">
+            <label>apiKey</label>
+            <input type="text" id="fb-apikey" placeholder="AIza..."/>
+          </div>
+          <div class="form-group">
+            <label>databaseURL</label>
+            <input type="text" id="fb-dburl" placeholder="https://your-project-default-rtdb.firebaseio.com"/>
+          </div>
+          <div class="form-group">
+            <label>projectId</label>
+            <input type="text" id="fb-projectid" placeholder="your-project-id"/>
+          </div>
+          <button class="btn btn-accent" onclick="connectFirebase()">Connect Firebase</button>
+        </div>
+
+        <div id="session-controls" style="display:none;flex-direction:column;gap:1rem;">
+          <div class="session-code-box">
+            <div class="session-code" id="session-code-display">——</div>
+            <div class="session-code-label">Share this code with participants</div>
+            <div class="participants-count">👥 <strong id="participant-count">0</strong> joined</div>
+            <button class="btn btn-ghost" style="margin-top:10px;font-size:12px" onclick="copyJoinLink()">📋 Copy join link</button>
+          </div>
+
+          <div class="active-q-info" id="active-q-info" style="display:none">
+            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
+              <span class="status-dot live"></span>
+              <span style="font-size:12px;color:var(--green);font-family:var(--mono)">LIVE</span>
+            </div>
+            <div class="q-text" id="active-q-text">—</div>
+          </div>
+
+          <div>
+            <h3>Launch a question</h3>
+            <div class="q-list" id="launch-q-list" style="max-height:220px;overflow-y:auto">
+              <p style="font-size:13px;color:var(--muted)">Add questions first →</p>
+            </div>
+          </div>
+
+          <div class="row-btns">
+            <button class="btn btn-red" id="close-btn" onclick="closeQuestion()" disabled>⏹ Close voting</button>
+            <button class="btn btn-ghost" onclick="viewResults()" id="results-btn" disabled>📊 Full results</button>
+          </div>
+
+          <div class="divider"></div>
+          <button class="btn btn-ghost" onclick="newSession()">🔄 New session</button>
+        </div>
+
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- RESULTS SCREEN -->
+<div id="results-screen">
+  <div class="top-bar">
+    <div class="logo">Poll<span>Room</span></div>
+    <div style="display:flex;gap:8px">
+      <button class="btn btn-ghost" onclick="backToDashboard()">← Dashboard</button>
+      <button class="btn btn-red" onclick="closeQuestion()">⏹ Close voting</button>
+    </div>
+  </div>
+  <div class="results-layout">
+    <div class="chart-area">
+      <h2 id="results-q-text">—</h2>
+      <div class="chart-wrap">
+        <canvas id="resultsChart" role="img" aria-label="Live poll results bar chart"></canvas>
+      </div>
+    </div>
+    <div class="results-sidebar">
+      <div>
+        <div class="total-votes" id="total-votes-num">0</div>
+        <div class="total-label">total votes</div>
+      </div>
+      <div>
+        <div style="display:flex;align-items:center;gap:6px;margin-bottom:0.75rem">
+          <span class="status-dot live" id="results-status-dot"></span>
+          <span style="font-size:12px;color:var(--green);font-family:var(--mono)" id="results-status-label">LIVE</span>
+        </div>
+        <h3>Breakdown</h3>
+        <div class="vote-tally" id="vote-tally"></div>
+      </div>
+      <div class="divider"></div>
+      <div>
+        <h3>Participants</h3>
+        <div style="font-size:2rem;font-weight:500;color:var(--accent2)" id="sidebar-participant-count">0</div>
+        <div style="font-size:12px;color:var(--muted);margin-top:2px">joined the session</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+let db = null;
+let sessionCode = null;
+let questions = [];
+let activeQuestion = null;
+let chart = null;
+let votesListener = null;
+let participantsListener = null;
+
+const COLORS = ['#7c6af7','#f7a26a','#5cf0a0','#f05c7a','#60c8f5','#f5e060','#c060f5','#60f5c8'];
+
+function generateCode() {
+  return Math.random().toString(36).substring(2,8).toUpperCase();
+}
+
+function connectFirebase() {
+  const apiKey = document.getElementById('fb-apikey').value.trim();
+  const databaseURL = document.getElementById('fb-dburl').value.trim();
+  const projectId = document.getElementById('fb-projectid').value.trim();
+  if (!apiKey || !databaseURL || !projectId) { showToast('Please fill all Firebase fields'); return; }
+
+  const firebaseConfig = { apiKey, databaseURL, projectId, appId: '1:0:web:0' };
+  try {
+    if (firebase.apps.length) firebase.app().delete();
+    firebase.initializeApp(firebaseConfig);
+    db = firebase.database();
+    db.ref('.info/connected').on('value', snap => {
+      if (snap.val()) {
+        document.getElementById('fb-config-box').style.display = 'none';
+        document.getElementById('session-controls').style.display = 'flex';
+        startSession();
+        showToast('✓ Firebase connected!');
+      }
+    });
+  } catch(e) { showToast('Firebase error: ' + e.message); }
+}
+
+function startSession() {
+  sessionCode = generateCode();
+  document.getElementById('session-code-display').textContent = sessionCode;
+  db.ref('sessions/' + sessionCode).set({ status: 'waiting', createdAt: Date.now() });
+
+  if (participantsListener) participantsListener();
+  participantsListener = db.ref('sessions/' + sessionCode + '/participants').on('value', snap => {
+    const count = snap.numChildren();
+    document.getElementById('participant-count').textContent = count;
+    document.getElementById('sidebar-participant-count').textContent = count;
+  });
+}
+
+function addOption() {
+  const grid = document.getElementById('options-grid');
+  const idx = grid.children.length;
+  const color = COLORS[idx % COLORS.length];
+  const div = document.createElement('div');
+  div.className = 'option-row';
+  div.innerHTML = `<input type="text" placeholder="Option ${String.fromCharCode(65+idx)}" class="opt-input"/>
+    <input type="color" class="option-color" value="${color}"/>
+    <button class="remove-btn" onclick="removeOption(this)">×</button>`;
+  grid.appendChild(div);
+}
+
+function removeOption(btn) {
+  const grid = document.getElementById('options-grid');
+  if (grid.children.length <= 2) { showToast('Need at least 2 options'); return; }
+  btn.closest('.option-row').remove();
+}
+
+function addQuestion() {
+  const text = document.getElementById('q-text').value.trim();
+  if (!text) { showToast('Enter a question'); return; }
+  const rows = document.querySelectorAll('.option-row');
+  const options = [];
+  rows.forEach((r, i) => {
+    const val = r.querySelector('.opt-input').value.trim();
+    const color = r.querySelector('.option-color').value;
+    if (val) options.push({ text: val, color, votes: 0 });
+  });
+  if (options.length < 2) { showToast('Add at least 2 options with text'); return; }
+  const q = { id: Date.now().toString(), text, options };
+  questions.push(q);
+  document.getElementById('q-text').value = '';
+  document.querySelectorAll('.opt-input').forEach(i => i.value = '');
+  renderQuestionList();
+  showToast('Question saved!');
+}
+
+function renderQuestionList() {
+  const list = document.getElementById('q-list');
+  const launchList = document.getElementById('launch-q-list');
+  document.getElementById('q-count').textContent = questions.length ? `(${questions.length})` : '';
+
+  if (!questions.length) {
+    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No questions yet.<br/>Build your first one above.</p></div>`;
+    launchList.innerHTML = '<p style="font-size:13px;color:var(--muted)">Add questions first →</p>';
+    return;
+  }
+
+  list.innerHTML = questions.map((q,i) => `
+    <div class="q-item" onclick="editQ(${i})">
+      <div>
+        <div class="q-item-text">${q.text}</div>
+        <div class="q-item-meta">${q.options.length} options</div>
+      </div>
+      <div class="q-actions">
+        <button class="icon-btn del" onclick="event.stopPropagation();deleteQ(${i})" title="Delete">✕</button>
+      </div>
+    </div>`).join('');
+
+  launchList.innerHTML = questions.map((q,i) => `
+    <div class="q-item" style="margin-bottom:6px" onclick="launchQuestion(${i})">
+      <div class="q-item-text" style="font-size:13px">${q.text}</div>
+      <button class="btn btn-green" style="padding:6px 12px;font-size:12px;flex-shrink:0" onclick="event.stopPropagation();launchQuestion(${i})">▶ Launch</button>
+    </div>`).join('');
+}
+
+function deleteQ(i) {
+  questions.splice(i, 1);
+  renderQuestionList();
+}
+
+function launchQuestion(i) {
+  if (!db) { showToast('Connect Firebase first'); return; }
+  const q = questions[i];
+  activeQuestion = q;
+  const optionsData = {};
+  q.options.forEach((o, idx) => { optionsData[idx] = { text: o.text, color: o.color, votes: 0 }; });
+  db.ref('sessions/' + sessionCode + '/activeQuestion').set({ id: q.id, text: q.text, options: optionsData, status: 'live', launchedAt: Date.now() });
+  document.getElementById('active-q-info').style.display = 'block';
+  document.getElementById('active-q-text').textContent = q.text;
+  document.getElementById('close-btn').disabled = false;
+  document.getElementById('results-btn').disabled = false;
+  showToast('▶ Question launched!');
+  listenVotes();
+}
+
+function listenVotes() {
+  if (votesListener) {
+    db.ref('sessions/' + sessionCode + '/activeQuestion/options').off('value', votesListener);
+  }
+  votesListener = db.ref('sessions/' + sessionCode + '/activeQuestion/options').on('value', snap => {
+    if (!snap.val()) return;
+    const opts = snap.val();
+    updateResultsUI(opts);
+  });
+}
+
+function updateResultsUI(opts) {
+  if (!activeQuestion) return;
+  const labels = Object.values(opts).map(o => o.text);
+  const data = Object.values(opts).map(o => o.votes || 0);
+  const colors = Object.values(opts).map(o => o.color);
+  const total = data.reduce((a,b) => a+b, 0);
+  document.getElementById('total-votes-num').textContent = total;
+
+  const tally = document.getElementById('vote-tally');
+  tally.innerHTML = Object.values(opts).map((o,i) => `
+    <div class="tally-row">
+      <div class="tally-dot" style="background:${o.color}"></div>
+      <div class="tally-label" style="font-size:13px">${o.text}</div>
+      <div class="tally-count">${o.votes||0}</div>
+      <div class="tally-pct">${total ? Math.round((o.votes||0)/total*100) : 0}%</div>
+    </div>`).join('');
+
+  if (chart) {
+    chart.data.labels = labels;
+    chart.data.datasets[0].data = data;
+    chart.data.datasets[0].backgroundColor = colors;
+    chart.update('active');
+  } else {
+    const ctx = document.getElementById('resultsChart').getContext('2d');
+    chart = new Chart(ctx, {
+      type: 'bar',
+      data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 8, borderSkipped: false }] },
+      options: {
+        responsive: true, maintainAspectRatio: false,
+        plugins: { legend: { display: false } },
+        scales: {
+          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a8899', font: { family: "'Sora',sans-serif", size: 13 } } },
+          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a8899', font: { family: "'Sora',sans-serif" }, stepSize: 1 }, beginAtZero: true }
+        },
+        animation: { duration: 400 }
+      }
+    });
+  }
+}
+
+function viewResults() {
+  document.getElementById('config-screen').style.display = 'none';
+  document.getElementById('results-screen').style.display = 'flex';
+  document.getElementById('results-q-text').textContent = activeQuestion ? activeQuestion.text : '—';
+}
+
+function backToDashboard() {
+  document.getElementById('config-screen').style.display = 'flex';
+  document.getElementById('results-screen').style.display = 'none';
+}
+
+function closeQuestion() {
+  if (!db || !sessionCode) return;
+  db.ref('sessions/' + sessionCode + '/activeQuestion/status').set('closed');
+  document.querySelector('.status-dot').className = 'status-dot closed';
+  document.getElementById('results-status-dot').className = 'status-dot closed';
+  document.getElementById('results-status-label').textContent = 'CLOSED';
+  document.getElementById('close-btn').disabled = true;
+  showToast('⏹ Voting closed');
+}
+
+function newSession() {
+  if (votesListener) db.ref('sessions/' + sessionCode + '/activeQuestion/options').off('value', votesListener);
+  if (participantsListener) db.ref('sessions/' + sessionCode + '/participants').off('value', participantsListener);
+  activeQuestion = null;
+  if (chart) { chart.destroy(); chart = null; }
+  document.getElementById('active-q-info').style.display = 'none';
+  document.getElementById('close-btn').disabled = true;
+  document.getElementById('results-btn').disabled = true;
+  startSession();
+}
+
+function copyJoinLink() {
+  const url = window.location.href.replace('trainer.html', 'participant.html') + '?code=' + sessionCode;
+  navigator.clipboard.writeText(url).then(() => showToast('Join link copied!'));
+}
+
+function showToast(msg) {
+  const t = document.createElement('div');
+  t.className = 'toast';
+  t.textContent = msg;
+  document.body.appendChild(t);
+  setTimeout(() => t.remove(), 2800);
+}
+</script>
+</body>
+</html>
