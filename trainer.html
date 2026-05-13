@@ -99,11 +99,17 @@ textarea { resize: vertical; min-height: 68px; line-height: 1.5; }
 /* TIMER */
 .timer-box { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem; }
 .timer-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px; }
-.timer-live { display: none; margin-top: 10px; text-align: center; }
-.timer-live-num { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; line-height: 1; }
-.timer-live-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
-.tbar-wrap { height: 6px; background: var(--bg); border-radius: 10px; overflow: hidden; margin-top: 8px; border: 1px solid var(--border); }
-.tbar { height: 100%; border-radius: 10px; background: var(--green); transition: width 1s linear, background .4s; }
+.timer-live { display: none; margin-top: 12px; background: var(--accent-light); border: 1.5px solid #c7d2fe; border-radius: 10px; padding: .875rem 1rem; }
+.timer-clock-row { display: flex; align-items: center; gap: 12px; }
+.timer-clock-face { position: relative; width: 64px; height: 64px; flex-shrink: 0; }
+.timer-clock-face svg { width: 64px; height: 64px; transform: rotate(-90deg); }
+.tclock-bg { fill: none; stroke: #e0e7ff; stroke-width: 6; }
+.tclock-ring { fill: none; stroke: #4f46e5; stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke .4s; }
+.tclock-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 1.2rem; font-weight: 700; color: var(--accent); }
+.timer-clock-info { flex: 1; }
+.timer-clock-msg { font-size: 12px; font-weight: 600; color: var(--accent); margin-bottom: 4px; }
+.timer-live-num { font-family: var(--mono); font-size: 2.5rem; font-weight: 700; line-height: 1; color: var(--text); transition: color .4s; }
+.timer-live-label { font-size: 11px; color: var(--muted); margin-top: 2px; }
 
 /* ACTIVE Q */
 .active-q { background: var(--green-light); border: 1.5px solid #a7f3d0; border-radius: var(--radius); padding: 1rem; display: none; }
@@ -137,7 +143,7 @@ textarea { resize: vertical; min-height: 68px; line-height: 1.5; }
 .tally-pct { font-size: 11px; color: var(--muted); min-width: 30px; text-align: right; }
 
 /* results timer pill in topbar */
-.res-timer { font-family: var(--mono); font-size: 1rem; font-weight: 700; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 5px 12px; display: none; }
+.res-timer { font-family: var(--mono); font-size: 1.6rem; font-weight: 700; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 5px 16px; display: none; }
 
 .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1d2e; color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 500; z-index: 999; box-shadow: var(--shadow-md); animation: tin .25s ease; }
 @keyframes tin { from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1} }
@@ -350,17 +356,37 @@ function startTimer(s){
   timerTotal=s; timerSecs=s;
   const live=document.getElementById('timer-live');
   const num=document.getElementById('timer-num');
-  const bar=document.getElementById('tbar');
   const rTimer=document.getElementById('res-timer');
+  const ring=document.getElementById('tclock-ring');
+  const center=document.getElementById('tclock-center');
+  const msg=document.getElementById('timer-clock-msg');
+  const circumference=163.4;
   live.style.display='block'; rTimer.style.display='block';
 
   function tick(){
-    num.textContent=timerSecs; rTimer.textContent=timerSecs;
-    const pct=(timerSecs/timerTotal)*100;
-    bar.style.width=pct+'%';
-    if(timerSecs<=5){ bar.style.background='#dc2626'; num.style.color='#dc2626'; rTimer.style.color='#dc2626'; }
-    else if(timerSecs<=10){ bar.style.background='#ea580c'; num.style.color='#ea580c'; rTimer.style.color='#ea580c'; }
-    else{ bar.style.background='#059669'; num.style.color='var(--text)'; rTimer.style.color='var(--text)'; }
+    num.textContent=timerSecs;
+    center.textContent=timerSecs;
+    rTimer.textContent=timerSecs+'s';
+    const pct=timerSecs/timerTotal;
+    ring.style.strokeDashoffset=circumference*(1-pct);
+
+    if(timerSecs<=5){
+      ring.style.stroke='#dc2626'; num.style.color='#dc2626'; center.style.color='#dc2626';
+      live.style.background='#fef2f2'; live.style.borderColor='#fecaca';
+      msg.style.color='#dc2626'; msg.textContent='🚨 Last few seconds!';
+      rTimer.style.color='#dc2626';
+    } else if(timerSecs<=10){
+      ring.style.stroke='#ea580c'; num.style.color='#ea580c'; center.style.color='#ea580c';
+      live.style.background='#fff7ed'; live.style.borderColor='#fed7aa';
+      msg.style.color='#ea580c'; msg.textContent='⚡ Almost time!';
+      rTimer.style.color='#ea580c';
+    } else {
+      ring.style.stroke='#4f46e5'; num.style.color='var(--text)'; center.style.color='var(--accent)';
+      live.style.background='var(--accent-light)'; live.style.borderColor='#c7d2fe';
+      msg.style.color='var(--accent)'; msg.textContent='⏱ Voting is live';
+      rTimer.style.color='var(--text)';
+    }
+
     if(timerSecs<=0){ stopTimer(); closeQ(); toast("⏱ Time's up — voting closed!"); return; }
     timerSecs--;
     timerInt=setTimeout(tick,1000);

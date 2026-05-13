@@ -72,12 +72,18 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,
 .q-text { font-size: 1.1rem; font-weight: 700; line-height: 1.45; margin-bottom: 1.25rem; }
 
 /* TIMER BAR on question */
-.q-timer { margin-bottom: 1rem; display: none; }
-.q-timer-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
-.q-timer-label { font-size: 11px; font-weight: 600; color: var(--muted); }
-.q-timer-num { font-family: var(--mono); font-size: 13px; font-weight: 700; }
-.q-tbar-wrap { height: 5px; background: var(--bg); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
-.q-tbar { height: 100%; border-radius: 10px; background: var(--accent); transition: width 1s linear, background .4s; }
+.q-timer { margin-bottom: 1.25rem; display: none; background: var(--accent-light); border: 1.5px solid #c7d2fe; border-radius: 14px; padding: 1rem 1.25rem; }
+.q-timer-msg { font-size: 13px; font-weight: 600; color: var(--accent); margin-bottom: 10px; text-align: center; }
+.clock-row { display: flex; align-items: center; justify-content: center; gap: 14px; }
+.clock-face { position: relative; width: 72px; height: 72px; flex-shrink: 0; }
+.clock-face svg { width: 72px; height: 72px; transform: rotate(-90deg); }
+.clock-bg { fill: none; stroke: #e0e7ff; stroke-width: 6; }
+.clock-ring { fill: none; stroke: var(--accent); stroke-width: 6; stroke-linecap: round; transition: stroke-dashoffset 1s linear, stroke .4s; }
+.clock-center { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; font-family: var(--mono); font-size: 1.3rem; font-weight: 700; color: var(--accent); }
+.clock-text-side { flex: 1; }
+.clock-label { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 2px; }
+.clock-secs { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; line-height: 1; color: var(--text); transition: color .4s; }
+.clock-hint { font-size: 12px; color: var(--muted); margin-top: 2px; }
 
 .options { display: flex; flex-direction: column; gap: 10px; }
 .opt-btn {
@@ -141,11 +147,22 @@ input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,
     <div class="q-num">Question</div>
     <div class="q-text" id="q-text">—</div>
     <div class="q-timer" id="q-timer">
-      <div class="q-timer-top">
-        <span class="q-timer-label">⏱ Time remaining</span>
-        <span class="q-timer-num" id="q-timer-num">30</span>
+      <div class="q-timer-msg" id="q-timer-msg">⏱ Time is running — answer quickly!</div>
+      <div class="clock-row">
+        <div class="clock-face">
+          <svg viewBox="0 0 72 72">
+            <circle class="clock-bg" cx="36" cy="36" r="30"/>
+            <circle class="clock-ring" id="clock-ring" cx="36" cy="36" r="30"
+              stroke-dasharray="188.5" stroke-dashoffset="0"/>
+          </svg>
+          <div class="clock-center" id="clock-center">—</div>
+        </div>
+        <div class="clock-text-side">
+          <div class="clock-label">Time remaining</div>
+          <div class="clock-secs" id="clock-secs">—</div>
+          <div class="clock-hint" id="clock-hint">seconds to vote</div>
+        </div>
       </div>
-      <div class="q-tbar-wrap"><div class="q-tbar" id="q-tbar" style="width:100%"></div></div>
     </div>
     <div class="options" id="options"></div>
     <div class="voted-msg" id="voted-msg">✓ Vote received! Waiting for others...</div>
@@ -248,20 +265,51 @@ function listenForQ(){
 function startParticipantTimer(endsAt, total){
   stopParticipantTimer();
   const timerEl=document.getElementById('q-timer');
-  const numEl=document.getElementById('q-timer-num');
-  const barEl=document.getElementById('q-tbar');
+  const secsEl=document.getElementById('clock-secs');
+  const centerEl=document.getElementById('clock-center');
+  const ringEl=document.getElementById('clock-ring');
+  const msgEl=document.getElementById('q-timer-msg');
+  const hintEl=document.getElementById('clock-hint');
+  const circumference=188.5;
   timerEl.style.display='block';
 
   function tick(){
     const remaining=Math.max(0,Math.round((endsAt-Date.now())/1000));
-    numEl.textContent=remaining;
-    const pct=total?Math.min(100,(remaining/total)*100):0;
-    barEl.style.width=pct+'%';
-    if(remaining<=5){barEl.style.background='#dc2626';numEl.style.color='#dc2626';}
-    else if(remaining<=10){barEl.style.background='#ea580c';numEl.style.color='#ea580c';}
-    else{barEl.style.background='#4f46e5';numEl.style.color='var(--text)';}
+    secsEl.textContent=remaining;
+    centerEl.textContent=remaining;
+    const pct=total?remaining/total:0;
+    ringEl.style.strokeDashoffset=circumference*(1-pct);
+
+    if(remaining<=5){
+      ringEl.style.stroke='#dc2626';
+      secsEl.style.color='#dc2626';
+      centerEl.style.color='#dc2626';
+      timerEl.style.background='#fef2f2';
+      timerEl.style.borderColor='#fecaca';
+      msgEl.style.color='#dc2626';
+      msgEl.textContent='🚨 Hurry! Last few seconds!';
+      hintEl.textContent='seconds left!';
+    } else if(remaining<=10){
+      ringEl.style.stroke='#ea580c';
+      secsEl.style.color='#ea580c';
+      centerEl.style.color='#ea580c';
+      timerEl.style.background='#fff7ed';
+      timerEl.style.borderColor='#fed7aa';
+      msgEl.style.color='#ea580c';
+      msgEl.textContent='⚡ Almost time — vote now!';
+    } else {
+      ringEl.style.stroke='#4f46e5';
+      secsEl.style.color='var(--text)';
+      centerEl.style.color='var(--accent)';
+      timerEl.style.background='var(--accent-light)';
+      timerEl.style.borderColor='#c7d2fe';
+      msgEl.style.color='var(--accent)';
+      msgEl.textContent='⏱ Time is running — answer quickly!';
+      hintEl.textContent='seconds to vote';
+    }
+
     if(remaining>0) timerInt=setTimeout(tick,500);
-    else timerEl.style.display='none';
+    else { timerEl.style.display='none'; }
   }
   tick();
 }
