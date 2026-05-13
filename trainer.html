@@ -4,508 +4,542 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>PollRoom — Trainer</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
 <style>
-  :root {
-    --bg: #0d0d0f;
-    --surface: #16161a;
-    --surface2: #1e1e24;
-    --border: rgba(255,255,255,0.07);
-    --accent: #7c6af7;
-    --accent2: #f7a26a;
-    --text: #f0eff4;
-    --muted: #8a8899;
-    --green: #5cf0a0;
-    --red: #f05c7a;
-    --radius: 12px;
-    --font: 'Sora', sans-serif;
-    --mono: 'DM Mono', monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; }
+:root {
+  --bg: #f5f6fa;
+  --white: #ffffff;
+  --border: #e4e6ef;
+  --text: #1a1d2e;
+  --muted: #6b7280;
+  --accent: #4f46e5;
+  --accent-light: #eef2ff;
+  --green: #059669;
+  --green-light: #ecfdf5;
+  --red: #dc2626;
+  --red-light: #fef2f2;
+  --orange: #ea580c;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 6px rgba(0,0,0,0.07);
+  --radius: 12px;
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; font-size: 14px; }
 
-  /* CONFIG SCREEN */
-  #config-screen { display: flex; flex-direction: column; min-height: 100vh; }
-  .top-bar { padding: 1.25rem 2rem; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; }
-  .logo { font-size: 1.1rem; font-weight: 700; letter-spacing: -0.5px; }
-  .logo span { color: var(--accent); }
-  .role-badge { font-size: 11px; font-family: var(--mono); background: rgba(124,106,247,0.15); color: var(--accent); padding: 4px 10px; border-radius: 20px; border: 1px solid rgba(124,106,247,0.3); }
+.topbar { background: var(--white); border-bottom: 1px solid var(--border); padding: 0 1.75rem; height: 56px; display: flex; align-items: center; justify-content: space-between; box-shadow: var(--shadow); }
+.logo { font-size: 1.05rem; font-weight: 700; letter-spacing: -0.3px; }
+.logo em { color: var(--accent); font-style: normal; }
+.badge { font-size: 11px; font-weight: 600; padding: 3px 10px; border-radius: 20px; background: var(--accent-light); color: var(--accent); }
+.conn-status { font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 6px; }
+.dot { width: 7px; height: 7px; border-radius: 50%; background: #d1d5db; flex-shrink: 0; }
+.dot.live { background: var(--green); animation: blink 2s infinite; }
+@keyframes blink { 0%,100%{opacity:1}50%{opacity:.4} }
 
-  .main-layout { display: grid; grid-template-columns: 1fr 420px; gap: 0; flex: 1; }
-  .panel { padding: 2rem; }
-  .panel.left { border-right: 1px solid var(--border); }
+.layout { display: grid; grid-template-columns: 1fr 370px; min-height: calc(100vh - 56px); }
+.left-panel { padding: 1.5rem; overflow-y: auto; }
+.right-panel { background: var(--white); border-left: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; gap: 1.25rem; overflow-y: auto; }
 
-  h2 { font-size: 1rem; font-weight: 600; margin-bottom: 1rem; color: var(--text); }
-  h3 { font-size: 0.85rem; font-weight: 500; color: var(--muted); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 0.75rem; }
+.card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.25rem; box-shadow: var(--shadow); margin-bottom: 1.25rem; }
+.section-title { font-size: 11px; font-weight: 700; color: var(--muted); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 1rem; }
 
-  .form-group { margin-bottom: 1rem; }
-  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; font-family: var(--mono); }
-  input, textarea, select {
-    width: 100%; padding: 10px 14px; background: var(--surface2);
-    border: 1px solid var(--border); border-radius: 8px;
-    color: var(--text); font-family: var(--font); font-size: 14px;
-    outline: none; transition: border .2s;
-  }
-  input:focus, textarea:focus { border-color: var(--accent); }
-  textarea { resize: vertical; min-height: 70px; }
+label { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 5px; }
+.form-group { margin-bottom: 0.875rem; }
+input, textarea, select {
+  width: 100%; padding: 9px 12px; background: var(--bg);
+  border: 1.5px solid var(--border); border-radius: 8px;
+  color: var(--text); font-family: var(--font); font-size: 14px;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+input:focus, textarea:focus, select:focus {
+  border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); background: var(--white);
+}
+textarea { resize: vertical; min-height: 68px; line-height: 1.5; }
 
-  .options-grid { display: flex; flex-direction: column; gap: 8px; margin-bottom: 1rem; }
-  .option-row { display: flex; gap: 8px; align-items: center; }
-  .option-row input { flex: 1; }
-  .option-color { width: 32px; height: 38px; border-radius: 6px; border: 1px solid var(--border); cursor: pointer; padding: 2px; background: var(--surface2); }
-  .remove-btn { width: 32px; height: 32px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 16px; transition: all .15s; }
-  .remove-btn:hover { background: rgba(240,92,122,0.12); border-color: var(--red); color: var(--red); }
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; padding: 9px 15px; border-radius: 8px; font-family: var(--font); font-size: 13px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; white-space: nowrap; }
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 1px 3px rgba(79,70,229,0.25); }
+.btn-primary:hover { background: #4338ca; }
+.btn-outline { background: var(--white); border: 1.5px solid var(--border); color: var(--text); }
+.btn-outline:hover { border-color: #9ca3af; }
+.btn-green { background: var(--green-light); color: var(--green); border: 1.5px solid #a7f3d0; }
+.btn-green:hover { background: #d1fae5; }
+.btn-red { background: var(--red-light); color: var(--red); border: 1.5px solid #fecaca; }
+.btn-red:hover { background: #fee2e2; }
+.btn-sm { padding: 6px 11px; font-size: 12px; }
+.btn:disabled { opacity: .4; cursor: not-allowed; pointer-events: none; }
+.btn-row { display: flex; gap: 8px; flex-wrap: wrap; }
 
-  .btn { display: inline-flex; align-items: center; gap: 6px; padding: 10px 18px; border-radius: 8px; font-family: var(--font); font-size: 14px; font-weight: 500; cursor: pointer; border: none; transition: all .15s; }
-  .btn-ghost { background: transparent; border: 1px solid var(--border); color: var(--muted); }
-  .btn-ghost:hover { border-color: rgba(255,255,255,0.2); color: var(--text); }
-  .btn-accent { background: var(--accent); color: #fff; }
-  .btn-accent:hover { opacity: .85; }
-  .btn-green { background: rgba(92,240,160,0.12); color: var(--green); border: 1px solid rgba(92,240,160,0.25); }
-  .btn-green:hover { background: rgba(92,240,160,0.2); }
-  .btn-red { background: rgba(240,92,122,0.12); color: var(--red); border: 1px solid rgba(240,92,122,0.25); }
-  .btn-red:hover { background: rgba(240,92,122,0.2); }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
+.opts-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 1rem; }
+.opt-row { display: flex; gap: 7px; align-items: center; }
+.opt-row input { flex: 1; }
+.color-pick { width: 36px; height: 36px; border-radius: 7px; border: 1.5px solid var(--border); cursor: pointer; padding: 3px; background: var(--white); flex-shrink: 0; }
+.rm-btn { width: 32px; height: 32px; border-radius: 7px; border: 1.5px solid var(--border); background: var(--white); color: var(--muted); cursor: pointer; font-size: 15px; flex-shrink: 0; display: flex; align-items: center; justify-content: center; transition: all .15s; }
+.rm-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
 
-  .row-btns { display: flex; gap: 8px; flex-wrap: wrap; }
+.q-list { display: flex; flex-direction: column; gap: 6px; }
+.q-item { display: flex; align-items: center; gap: 10px; padding: 10px 12px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 10px; }
+.q-item-body { flex: 1; min-width: 0; }
+.q-item-text { font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.q-item-sub { font-size: 11px; color: var(--muted); margin-top: 2px; }
+.del-btn { width: 26px; height: 26px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: #9ca3af; cursor: pointer; font-size: 12px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: all .12s; }
+.del-btn:hover { border-color: var(--red); color: var(--red); background: var(--red-light); }
 
-  /* QUESTION LIST */
-  .q-list { display: flex; flex-direction: column; gap: 8px; }
-  .q-item { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 14px; cursor: pointer; transition: all .15s; display: flex; align-items: center; justify-content: space-between; }
-  .q-item:hover { border-color: rgba(124,106,247,0.4); }
-  .q-item.active { border-color: var(--accent); background: rgba(124,106,247,0.08); }
-  .q-item-text { font-size: 14px; font-weight: 500; flex: 1; }
-  .q-item-meta { font-size: 11px; color: var(--muted); font-family: var(--mono); margin-top: 3px; }
-  .q-actions { display: flex; gap: 6px; }
-  .icon-btn { width: 28px; height: 28px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 13px; transition: all .15s; }
-  .icon-btn:hover { background: var(--surface); color: var(--text); }
-  .icon-btn.del:hover { border-color: var(--red); color: var(--red); background: rgba(240,92,122,0.08); }
+.empty { text-align: center; padding: 1.75rem 1rem; color: var(--muted); font-size: 13px; }
 
-  .empty-state { text-align: center; padding: 3rem 1rem; color: var(--muted); }
-  .empty-state .icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
-  .empty-state p { font-size: 14px; }
+/* CODE BOX */
+.code-box { background: var(--accent-light); border: 1.5px solid #c7d2fe; border-radius: var(--radius); padding: 1.25rem; text-align: center; }
+.code-num { font-family: var(--mono); font-size: 2.5rem; font-weight: 700; color: var(--accent); letter-spacing: 0.18em; }
+.code-sub { font-size: 11px; color: #6366f1; font-weight: 600; text-transform: uppercase; letter-spacing: 0.07em; margin-top: 4px; }
+.pill { display: inline-flex; align-items: center; gap: 5px; margin-top: 10px; background: var(--white); border: 1px solid #c7d2fe; border-radius: 20px; padding: 4px 12px; font-size: 12px; color: var(--accent); font-weight: 600; }
 
-  /* SESSION PANEL */
-  .session-panel { display: flex; flex-direction: column; gap: 1.5rem; }
-  .firebase-config { background: var(--surface2); border: 1px solid rgba(247,162,106,0.3); border-radius: var(--radius); padding: 1rem; }
-  .firebase-config h3 { color: var(--accent2); margin-bottom: 0.5rem; }
-  .firebase-config p { font-size: 12px; color: var(--muted); margin-bottom: 0.75rem; line-height: 1.6; }
-  .firebase-config a { color: var(--accent); text-decoration: none; }
+/* TIMER */
+.timer-box { background: var(--white); border: 1.5px solid var(--border); border-radius: var(--radius); padding: 1rem; }
+.timer-head { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; color: var(--muted); margin-bottom: 8px; }
+.timer-live { display: none; margin-top: 10px; text-align: center; }
+.timer-live-num { font-family: var(--mono); font-size: 2.2rem; font-weight: 700; line-height: 1; }
+.timer-live-label { font-size: 11px; color: var(--muted); margin-top: 3px; }
+.tbar-wrap { height: 6px; background: var(--bg); border-radius: 10px; overflow: hidden; margin-top: 8px; border: 1px solid var(--border); }
+.tbar { height: 100%; border-radius: 10px; background: var(--green); transition: width 1s linear, background .4s; }
 
-  .session-code-box { background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.5rem; text-align: center; }
-  .session-code { font-family: var(--mono); font-size: 3rem; font-weight: 500; letter-spacing: 0.15em; color: var(--accent); line-height: 1; }
-  .session-code-label { font-size: 12px; color: var(--muted); margin-top: 6px; font-family: var(--mono); }
-  .participants-count { margin-top: 1rem; font-size: 13px; color: var(--muted); }
-  .participants-count strong { color: var(--green); }
+/* ACTIVE Q */
+.active-q { background: var(--green-light); border: 1.5px solid #a7f3d0; border-radius: var(--radius); padding: 1rem; display: none; }
+.live-pill { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 700; color: var(--green); text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.live-dot { width: 6px; height: 6px; border-radius: 50%; background: var(--green); animation: blink 1s infinite; }
 
-  .active-q-info { background: rgba(124,106,247,0.08); border: 1px solid rgba(124,106,247,0.2); border-radius: var(--radius); padding: 1rem; }
-  .active-q-info .q-text { font-size: 14px; font-weight: 500; margin-bottom: 4px; }
-  .status-dot { display: inline-block; width: 7px; height: 7px; border-radius: 50%; margin-right: 6px; }
-  .status-dot.live { background: var(--green); box-shadow: 0 0 0 3px rgba(92,240,160,0.2); animation: pulse 1.5s infinite; }
-  .status-dot.waiting { background: var(--accent2); }
-  .status-dot.closed { background: var(--muted); }
-  @keyframes pulse { 0%,100%{box-shadow:0 0 0 3px rgba(92,240,160,0.2)}50%{box-shadow:0 0 0 6px rgba(92,240,160,0.05)} }
+.launch-list { display: flex; flex-direction: column; gap: 6px; max-height: 220px; overflow-y: auto; }
+.launch-row { display: flex; align-items: center; gap: 8px; padding: 8px 10px; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; }
+.launch-text { flex: 1; font-size: 12px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-  /* LIVE RESULTS SCREEN */
-  #results-screen { display: none; flex-direction: column; min-height: 100vh; }
-  .results-layout { display: grid; grid-template-columns: 1fr 320px; flex: 1; }
-  .chart-area { padding: 2rem; border-right: 1px solid var(--border); display: flex; flex-direction: column; }
-  .chart-area h2 { font-size: 1.1rem; margin-bottom: 1.5rem; line-height: 1.4; }
-  .chart-wrap { flex: 1; position: relative; min-height: 300px; }
-  .results-sidebar { padding: 2rem; display: flex; flex-direction: column; gap: 1.5rem; }
-  .vote-tally { display: flex; flex-direction: column; gap: 8px; }
-  .tally-row { display: flex; align-items: center; gap: 10px; }
-  .tally-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
-  .tally-label { flex: 1; font-size: 13px; }
-  .tally-count { font-family: var(--mono); font-size: 14px; font-weight: 500; }
-  .tally-pct { font-size: 12px; color: var(--muted); font-family: var(--mono); min-width: 36px; text-align: right; }
-  .total-votes { font-family: var(--mono); font-size: 2rem; font-weight: 500; color: var(--accent); }
-  .total-label { font-size: 12px; color: var(--muted); margin-top: 2px; }
+.divider { height: 1px; background: var(--border); }
+.spin { width: 13px; height: 13px; border: 2px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin .7s linear infinite; flex-shrink: 0; }
+@keyframes spin { to{transform:rotate(360deg)} }
 
-  .divider { height: 1px; background: var(--border); }
+/* RESULTS */
+#results-screen { display: none; flex-direction: column; min-height: 100vh; }
+.res-layout { display: grid; grid-template-columns: 1fr 290px; flex: 1; }
+.chart-panel { padding: 2rem; display: flex; flex-direction: column; background: var(--bg); }
+.chart-panel h2 { font-size: 1.1rem; font-weight: 700; margin-bottom: 4px; line-height: 1.4; }
+.chart-sub { font-size: 12px; color: var(--muted); margin-bottom: 1.5rem; display: flex; align-items: center; gap: 6px; }
+.chart-wrap { flex: 1; position: relative; min-height: 320px; background: var(--white); border-radius: var(--radius); padding: 1.25rem; border: 1px solid var(--border); }
+.res-side { background: var(--white); border-left: 1px solid var(--border); padding: 1.5rem; display: flex; flex-direction: column; gap: 1rem; overflow-y: auto; }
+.stat { background: var(--bg); border-radius: 10px; padding: 1rem; text-align: center; }
+.stat-num { font-family: var(--mono); font-size: 2rem; font-weight: 700; color: var(--accent); }
+.stat-label { font-size: 11px; color: var(--muted); font-weight: 600; text-transform: uppercase; letter-spacing: 0.06em; margin-top: 3px; }
+.tally { display: flex; flex-direction: column; gap: 9px; }
+.tally-row { display: flex; align-items: center; gap: 8px; }
+.tally-dot { width: 10px; height: 10px; border-radius: 3px; flex-shrink: 0; }
+.tally-text { flex: 1; font-size: 12px; font-weight: 500; }
+.tally-n { font-family: var(--mono); font-size: 13px; font-weight: 600; }
+.tally-pct { font-size: 11px; color: var(--muted); min-width: 30px; text-align: right; }
 
-  /* NOTIFICATION */
-  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface2); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; font-size: 13px; z-index: 999; animation: slideIn .3s ease; }
-  @keyframes slideIn { from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1} }
+/* results timer pill in topbar */
+.res-timer { font-family: var(--mono); font-size: 1rem; font-weight: 700; background: var(--bg); border: 1.5px solid var(--border); border-radius: 8px; padding: 5px 12px; display: none; }
 
-  @media(max-width:800px){
-    .main-layout,.results-layout{grid-template-columns:1fr}
-    .panel.left,.chart-area{border-right:none;border-bottom:1px solid var(--border)}
-  }
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1d2e; color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 500; z-index: 999; box-shadow: var(--shadow-md); animation: tin .25s ease; }
+@keyframes tin { from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1} }
+
+@media(max-width:860px){
+  .layout,.res-layout{grid-template-columns:1fr}
+  .right-panel,.res-side{border-left:none;border-top:1px solid var(--border)}
+}
 </style>
 </head>
 <body>
 
-<!-- CONFIG SCREEN -->
+<!-- DASHBOARD -->
 <div id="config-screen">
-  <div class="top-bar">
-    <div class="logo">Poll<span>Room</span></div>
-    <span class="role-badge">Trainer Dashboard</span>
+  <div class="topbar">
+    <div class="logo">Poll<em>Room</em></div>
+    <div style="display:flex;align-items:center;gap:12px">
+      <div class="conn-status"><span class="dot" id="conn-dot"></span><span id="conn-text">Connecting...</span></div>
+      <span class="badge">Trainer</span>
+    </div>
   </div>
 
-  <div class="main-layout">
-    <!-- LEFT: Question Builder -->
-    <div class="panel left">
-      <h2>Question Builder</h2>
-
-      <div class="form-group">
-        <label>Question text</label>
-        <textarea id="q-text" placeholder="e.g. What is the most important part of active listening?"></textarea>
-      </div>
-
-      <h3>Answer Options</h3>
-      <div class="options-grid" id="options-grid">
-        <div class="option-row">
-          <input type="text" placeholder="Option A" class="opt-input"/>
-          <input type="color" class="option-color" value="#7c6af7"/>
-          <button class="remove-btn" onclick="removeOption(this)">×</button>
+  <div class="layout">
+    <!-- LEFT -->
+    <div class="left-panel">
+      <div style="max-width:620px">
+        <div class="card">
+          <div class="section-title">Build a question</div>
+          <div class="form-group">
+            <label>Question text</label>
+            <textarea id="q-text" placeholder="e.g. What is the most important part of active listening?"></textarea>
+          </div>
+          <div style="margin-bottom:6px"><label>Answer options</label></div>
+          <div class="opts-list" id="opts-grid">
+            <div class="opt-row">
+              <input type="text" placeholder="Option A" class="opt-input"/>
+              <input type="color" class="color-pick" value="#4f46e5"/>
+              <button class="rm-btn" onclick="removeOpt(this)">×</button>
+            </div>
+            <div class="opt-row">
+              <input type="text" placeholder="Option B" class="opt-input"/>
+              <input type="color" class="color-pick" value="#059669"/>
+              <button class="rm-btn" onclick="removeOpt(this)">×</button>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-outline btn-sm" onclick="addOpt()">+ Add option</button>
+            <button class="btn btn-primary" onclick="addQuestion()">Save question →</button>
+          </div>
         </div>
-        <div class="option-row">
-          <input type="text" placeholder="Option B" class="opt-input"/>
-          <input type="color" class="option-color" value="#f7a26a"/>
-          <button class="remove-btn" onclick="removeOption(this)">×</button>
-        </div>
-      </div>
 
-      <div class="row-btns" style="margin-bottom:1.5rem">
-        <button class="btn btn-ghost" onclick="addOption()">+ Add option</button>
-        <button class="btn btn-accent" onclick="addQuestion()">Save question</button>
-      </div>
-
-      <div class="divider" style="margin-bottom:1.5rem"></div>
-
-      <h2>Questions <span id="q-count" style="color:var(--muted);font-weight:400;font-size:0.85rem"></span></h2>
-      <div class="q-list" id="q-list">
-        <div class="empty-state">
-          <div class="icon">📋</div>
-          <p>No questions yet.<br/>Build your first one above.</p>
+        <div class="card">
+          <div class="section-title">Question bank <span id="q-count" style="font-weight:400;text-transform:none;letter-spacing:0"></span></div>
+          <div class="q-list" id="q-list">
+            <div class="empty">📋 No questions yet — build one above!</div>
+          </div>
         </div>
       </div>
     </div>
 
-    <!-- RIGHT: Session Controls -->
-    <div class="panel">
-      <div class="session-panel">
+    <!-- RIGHT -->
+    <div class="right-panel">
+      <!-- Connecting -->
+      <div style="display:flex;align-items:center;gap:8px;color:var(--muted);font-size:13px" id="connecting">
+        <div class="spin"></div> Connecting to your database...
+      </div>
 
-        <div class="firebase-config" id="fb-config-box">
-          <h3>⚙ Connecting...</h3>
-          <p style="font-size:13px;color:var(--muted)">Connecting to trainingpolls database...</p>
+      <div id="session-controls" style="display:none;flex-direction:column;gap:1.25rem">
+        <!-- Code -->
+        <div class="code-box">
+          <div class="code-num" id="code-display">——</div>
+          <div class="code-sub">Share this code with participants</div>
+          <div class="pill">👥 <span id="pcount">0</span> joined</div>
+          <div style="margin-top:10px">
+            <button class="btn btn-outline btn-sm" onclick="copyLink()">📋 Copy join link</button>
+          </div>
         </div>
 
-        <div id="session-controls" style="display:none;flex-direction:column;gap:1rem;">
-          <div class="session-code-box">
-            <div class="session-code" id="session-code-display">——</div>
-            <div class="session-code-label">Share this code with participants</div>
-            <div class="participants-count">👥 <strong id="participant-count">0</strong> joined</div>
-            <button class="btn btn-ghost" style="margin-top:10px;font-size:12px" onclick="copyJoinLink()">📋 Copy join link</button>
+        <!-- Timer -->
+        <div class="timer-box">
+          <div class="timer-head">⏱ Countdown timer</div>
+          <select id="timer-sel">
+            <option value="0">No timer (manual close)</option>
+            <option value="15">15 seconds</option>
+            <option value="20">20 seconds</option>
+            <option value="30" selected>30 seconds</option>
+            <option value="45">45 seconds</option>
+            <option value="60">60 seconds</option>
+            <option value="90">90 seconds</option>
+            <option value="120">2 minutes</option>
+          </select>
+          <div class="timer-live" id="timer-live">
+            <div class="timer-live-num" id="timer-num">30</div>
+            <div class="timer-live-label">seconds remaining</div>
+            <div class="tbar-wrap"><div class="tbar" id="tbar" style="width:100%"></div></div>
           </div>
-
-          <div class="active-q-info" id="active-q-info" style="display:none">
-            <div style="display:flex;align-items:center;gap:6px;margin-bottom:6px">
-              <span class="status-dot live"></span>
-              <span style="font-size:12px;color:var(--green);font-family:var(--mono)">LIVE</span>
-            </div>
-            <div class="q-text" id="active-q-text">—</div>
-          </div>
-
-          <div>
-            <h3>Launch a question</h3>
-            <div class="q-list" id="launch-q-list" style="max-height:220px;overflow-y:auto">
-              <p style="font-size:13px;color:var(--muted)">Add questions first →</p>
-            </div>
-          </div>
-
-          <div class="row-btns">
-            <button class="btn btn-red" id="close-btn" onclick="closeQuestion()" disabled>⏹ Close voting</button>
-            <button class="btn btn-ghost" onclick="viewResults()" id="results-btn" disabled>📊 Full results</button>
-          </div>
-
-          <div class="divider"></div>
-          <button class="btn btn-ghost" onclick="newSession()">🔄 New session</button>
         </div>
 
+        <!-- Active Q -->
+        <div class="active-q" id="active-q">
+          <div class="live-pill"><span class="live-dot"></span>Live now</div>
+          <div style="font-size:13px;font-weight:600" id="active-q-text">—</div>
+        </div>
+
+        <!-- Launch list -->
+        <div>
+          <div class="section-title">Launch a question</div>
+          <div class="launch-list" id="launch-list">
+            <div style="font-size:12px;color:var(--muted);padding:4px">Add questions on the left →</div>
+          </div>
+        </div>
+
+        <div class="btn-row">
+          <button class="btn btn-red" id="close-btn" onclick="closeQ()" disabled>⏹ Close voting</button>
+          <button class="btn btn-outline" id="results-btn" onclick="viewResults()" disabled>📊 Results</button>
+        </div>
+
+        <div class="divider"></div>
+        <button class="btn btn-outline btn-sm" onclick="newSession()">🔄 New session code</button>
       </div>
     </div>
   </div>
 </div>
 
-<!-- RESULTS SCREEN -->
+<!-- RESULTS -->
 <div id="results-screen">
-  <div class="top-bar">
-    <div class="logo">Poll<span>Room</span></div>
-    <div style="display:flex;gap:8px">
-      <button class="btn btn-ghost" onclick="backToDashboard()">← Dashboard</button>
-      <button class="btn btn-red" onclick="closeQuestion()">⏹ Close voting</button>
+  <div class="topbar">
+    <div class="logo">Poll<em>Room</em></div>
+    <div style="display:flex;align-items:center;gap:8px">
+      <div class="res-timer" id="res-timer">30</div>
+      <button class="btn btn-outline btn-sm" onclick="backToDash()">← Dashboard</button>
+      <button class="btn btn-red btn-sm" id="close-btn2" onclick="closeQ()">⏹ Close voting</button>
     </div>
   </div>
-  <div class="results-layout">
-    <div class="chart-area">
-      <h2 id="results-q-text">—</h2>
+  <div class="res-layout">
+    <div class="chart-panel">
+      <h2 id="res-q-text">—</h2>
+      <div class="chart-sub" id="res-status">
+        <span class="dot live"></span> Live — votes updating in real time
+      </div>
       <div class="chart-wrap">
-        <canvas id="resultsChart" role="img" aria-label="Live poll results bar chart"></canvas>
+        <canvas id="myChart" role="img" aria-label="Live poll results bar chart"></canvas>
       </div>
     </div>
-    <div class="results-sidebar">
-      <div>
-        <div class="total-votes" id="total-votes-num">0</div>
-        <div class="total-label">total votes</div>
+    <div class="res-side">
+      <div class="stat">
+        <div class="stat-num" id="total-votes">0</div>
+        <div class="stat-label">Total votes</div>
       </div>
-      <div>
-        <div style="display:flex;align-items:center;gap:6px;margin-bottom:0.75rem">
-          <span class="status-dot live" id="results-status-dot"></span>
-          <span style="font-size:12px;color:var(--green);font-family:var(--mono)" id="results-status-label">LIVE</span>
-        </div>
-        <h3>Breakdown</h3>
-        <div class="vote-tally" id="vote-tally"></div>
+      <div class="stat">
+        <div class="stat-num" id="res-pcount" style="color:var(--green)">0</div>
+        <div class="stat-label">Participants</div>
       </div>
       <div class="divider"></div>
-      <div>
-        <h3>Participants</h3>
-        <div style="font-size:2rem;font-weight:500;color:var(--accent2)" id="sidebar-participant-count">0</div>
-        <div style="font-size:12px;color:var(--muted);margin-top:2px">joined the session</div>
-      </div>
+      <div class="section-title">Breakdown</div>
+      <div class="tally" id="tally"></div>
     </div>
   </div>
 </div>
 
 <script>
-let db = null;
-let sessionCode = null;
-let questions = [];
-let activeQuestion = null;
-let chart = null;
-let votesListener = null;
-let participantsListener = null;
+let db=null, sessionCode=null, activeQ=null, chart=null;
+let votesRef=null, timerInt=null, timerSecs=0, timerTotal=0;
+let questions=[];
+const COLORS=['#4f46e5','#059669','#ea580c','#db2777','#0891b2','#7c3aed','#b45309','#16a34a'];
 
-const COLORS = ['#7c6af7','#f7a26a','#5cf0a0','#f05c7a','#60c8f5','#f5e060','#c060f5','#60f5c8'];
+window.addEventListener('load', initFirebase);
 
-window.addEventListener("load", connectFirebase);
-
-function generateCode() {
-  return Math.random().toString(36).substring(2,8).toUpperCase();
-}
-
-function connectFirebase() {
-  const firebaseConfig = {
-    apiKey: "AIzaSyAsBWw9Kj2V21Z78Au6CieeTKC8tTPNJsE",
-    authDomain: "trainingpolls-884c9.firebaseapp.com",
-    databaseURL: "https://trainingpolls-884c9-default-rtdb.firebaseio.com",
-    projectId: "trainingpolls-884c9",
-    storageBucket: "trainingpolls-884c9.firebasestorage.app",
-    messagingSenderId: "892105298380",
-    appId: "1:892105298380:web:ad9bcfd8d59ad94648cd69"
+function initFirebase(){
+  const cfg={
+    apiKey:"AIzaSyAsBWw9Kj2V21Z78Au6CieeTKC8tTPNJsE",
+    authDomain:"trainingpolls-884c9.firebaseapp.com",
+    databaseURL:"https://trainingpolls-884c9-default-rtdb.firebaseio.com",
+    projectId:"trainingpolls-884c9",
+    storageBucket:"trainingpolls-884c9.firebasestorage.app",
+    messagingSenderId:"892105298380",
+    appId:"1:892105298380:web:ad9bcfd8d59ad94648cd69"
   };
-  try {
-    if (firebase.apps.length) firebase.app().delete();
-    firebase.initializeApp(firebaseConfig);
-    db = firebase.database();
-    db.ref('.info/connected').on('value', snap => {
-      if (snap.val()) {
-        document.getElementById('fb-config-box').style.display = 'none';
-        document.getElementById('session-controls').style.display = 'flex';
-        startSession();
-        showToast('✓ Connected!');
+  try{
+    if(firebase.apps.length) firebase.app().delete();
+    firebase.initializeApp(cfg);
+    db=firebase.database();
+    db.ref('.info/connected').on('value',s=>{
+      if(s.val()){
+        document.getElementById('connecting').style.display='none';
+        document.getElementById('session-controls').style.display='flex';
+        document.getElementById('conn-dot').className='dot live';
+        document.getElementById('conn-text').textContent='Connected';
+        if(!sessionCode) startSession();
       }
     });
-  } catch(e) { showToast('Firebase error: ' + e.message); }
+  }catch(e){toast('Error: '+e.message);}
 }
 
-function startSession() {
-  sessionCode = generateCode();
-  document.getElementById('session-code-display').textContent = sessionCode;
-  db.ref('sessions/' + sessionCode).set({ status: 'waiting', createdAt: Date.now() });
-
-  if (participantsListener) participantsListener();
-  participantsListener = db.ref('sessions/' + sessionCode + '/participants').on('value', snap => {
-    const count = snap.numChildren();
-    document.getElementById('participant-count').textContent = count;
-    document.getElementById('sidebar-participant-count').textContent = count;
+function startSession(){
+  sessionCode=Math.random().toString(36).substring(2,8).toUpperCase();
+  document.getElementById('code-display').textContent=sessionCode;
+  db.ref('sessions/'+sessionCode).set({status:'waiting',createdAt:Date.now()});
+  db.ref('sessions/'+sessionCode+'/participants').on('value',s=>{
+    const c=s.numChildren();
+    document.getElementById('pcount').textContent=c;
+    document.getElementById('res-pcount').textContent=c;
   });
 }
 
-function addOption() {
-  const grid = document.getElementById('options-grid');
-  const idx = grid.children.length;
-  const color = COLORS[idx % COLORS.length];
-  const div = document.createElement('div');
-  div.className = 'option-row';
-  div.innerHTML = `<input type="text" placeholder="Option ${String.fromCharCode(65+idx)}" class="opt-input"/>
-    <input type="color" class="option-color" value="${color}"/>
-    <button class="remove-btn" onclick="removeOption(this)">×</button>`;
-  grid.appendChild(div);
+/* TIMER */
+function startTimer(s){
+  stopTimer();
+  if(!s) return;
+  timerTotal=s; timerSecs=s;
+  const live=document.getElementById('timer-live');
+  const num=document.getElementById('timer-num');
+  const bar=document.getElementById('tbar');
+  const rTimer=document.getElementById('res-timer');
+  live.style.display='block'; rTimer.style.display='block';
+
+  function tick(){
+    num.textContent=timerSecs; rTimer.textContent=timerSecs;
+    const pct=(timerSecs/timerTotal)*100;
+    bar.style.width=pct+'%';
+    if(timerSecs<=5){ bar.style.background='#dc2626'; num.style.color='#dc2626'; rTimer.style.color='#dc2626'; }
+    else if(timerSecs<=10){ bar.style.background='#ea580c'; num.style.color='#ea580c'; rTimer.style.color='#ea580c'; }
+    else{ bar.style.background='#059669'; num.style.color='var(--text)'; rTimer.style.color='var(--text)'; }
+    if(timerSecs<=0){ stopTimer(); closeQ(); toast("⏱ Time's up — voting closed!"); return; }
+    timerSecs--;
+    timerInt=setTimeout(tick,1000);
+  }
+  tick();
 }
 
-function removeOption(btn) {
-  const grid = document.getElementById('options-grid');
-  if (grid.children.length <= 2) { showToast('Need at least 2 options'); return; }
-  btn.closest('.option-row').remove();
+function stopTimer(){
+  clearTimeout(timerInt); timerInt=null;
+  document.getElementById('timer-live').style.display='none';
+  document.getElementById('res-timer').style.display='none';
 }
 
-function addQuestion() {
-  const text = document.getElementById('q-text').value.trim();
-  if (!text) { showToast('Enter a question'); return; }
-  const rows = document.querySelectorAll('.option-row');
-  const options = [];
-  rows.forEach((r, i) => {
-    const val = r.querySelector('.opt-input').value.trim();
-    const color = r.querySelector('.option-color').value;
-    if (val) options.push({ text: val, color, votes: 0 });
-  });
-  if (options.length < 2) { showToast('Add at least 2 options with text'); return; }
-  const q = { id: Date.now().toString(), text, options };
-  questions.push(q);
-  document.getElementById('q-text').value = '';
-  document.querySelectorAll('.opt-input').forEach(i => i.value = '');
-  renderQuestionList();
-  showToast('Question saved!');
+/* OPTIONS */
+function addOpt(){
+  const g=document.getElementById('opts-grid');
+  const i=g.children.length;
+  const c=COLORS[i%COLORS.length];
+  const d=document.createElement('div');
+  d.className='opt-row';
+  d.innerHTML=`<input type="text" placeholder="Option ${String.fromCharCode(65+i)}" class="opt-input"/>
+    <input type="color" class="color-pick" value="${c}"/>
+    <button class="rm-btn" onclick="removeOpt(this)">×</button>`;
+  g.appendChild(d);
 }
 
-function renderQuestionList() {
-  const list = document.getElementById('q-list');
-  const launchList = document.getElementById('launch-q-list');
-  document.getElementById('q-count').textContent = questions.length ? `(${questions.length})` : '';
+function removeOpt(btn){
+  if(document.getElementById('opts-grid').children.length<=2){toast('Need at least 2 options');return;}
+  btn.closest('.opt-row').remove();
+}
 
-  if (!questions.length) {
-    list.innerHTML = `<div class="empty-state"><div class="icon">📋</div><p>No questions yet.<br/>Build your first one above.</p></div>`;
-    launchList.innerHTML = '<p style="font-size:13px;color:var(--muted)">Add questions first →</p>';
+/* QUESTIONS */
+function addQuestion(){
+  const text=document.getElementById('q-text').value.trim();
+  if(!text){toast('Enter a question');return;}
+  const rows=document.querySelectorAll('.opt-input');
+  const colors=document.querySelectorAll('.color-pick');
+  const opts=[];
+  rows.forEach((r,i)=>{if(r.value.trim()) opts.push({text:r.value.trim(),color:colors[i].value});});
+  if(opts.length<2){toast('Fill at least 2 options');return;}
+  questions.push({id:Date.now().toString(),text,options:opts});
+  document.getElementById('q-text').value='';
+  rows.forEach(r=>r.value='');
+  renderLists();
+  toast('✓ Question saved!');
+}
+
+function renderLists(){
+  const ql=document.getElementById('q-list');
+  const ll=document.getElementById('launch-list');
+  document.getElementById('q-count').textContent=questions.length?`(${questions.length})`:'';
+  if(!questions.length){
+    ql.innerHTML='<div class="empty">📋 No questions yet — build one above!</div>';
+    ll.innerHTML='<div style="font-size:12px;color:var(--muted);padding:4px">Add questions on the left →</div>';
     return;
   }
-
-  list.innerHTML = questions.map((q,i) => `
-    <div class="q-item" onclick="editQ(${i})">
-      <div>
+  ql.innerHTML=questions.map((q,i)=>`
+    <div class="q-item">
+      <div class="q-item-body">
         <div class="q-item-text">${q.text}</div>
-        <div class="q-item-meta">${q.options.length} options</div>
+        <div class="q-item-sub">${q.options.length} options</div>
       </div>
-      <div class="q-actions">
-        <button class="icon-btn del" onclick="event.stopPropagation();deleteQ(${i})" title="Delete">✕</button>
-      </div>
+      <button class="del-btn" onclick="delQ(${i})">✕</button>
     </div>`).join('');
-
-  launchList.innerHTML = questions.map((q,i) => `
-    <div class="q-item" style="margin-bottom:6px" onclick="launchQuestion(${i})">
-      <div class="q-item-text" style="font-size:13px">${q.text}</div>
-      <button class="btn btn-green" style="padding:6px 12px;font-size:12px;flex-shrink:0" onclick="event.stopPropagation();launchQuestion(${i})">▶ Launch</button>
+  ll.innerHTML=questions.map((q,i)=>`
+    <div class="launch-row">
+      <div class="launch-text">${q.text}</div>
+      <button class="btn btn-green btn-sm" onclick="launchQ(${i})">▶ Launch</button>
     </div>`).join('');
 }
 
-function deleteQ(i) {
-  questions.splice(i, 1);
-  renderQuestionList();
-}
+function delQ(i){questions.splice(i,1);renderLists();}
 
-function launchQuestion(i) {
-  if (!db) { showToast('Connect Firebase first'); return; }
-  const q = questions[i];
-  activeQuestion = q;
-  const optionsData = {};
-  q.options.forEach((o, idx) => { optionsData[idx] = { text: o.text, color: o.color, votes: 0 }; });
-  db.ref('sessions/' + sessionCode + '/activeQuestion').set({ id: q.id, text: q.text, options: optionsData, status: 'live', launchedAt: Date.now() });
-  document.getElementById('active-q-info').style.display = 'block';
-  document.getElementById('active-q-text').textContent = q.text;
-  document.getElementById('close-btn').disabled = false;
-  document.getElementById('results-btn').disabled = false;
-  showToast('▶ Question launched!');
+function launchQ(i){
+  if(!db){toast('Not connected');return;}
+  const q=questions[i]; activeQ=q;
+  const opts={};
+  q.options.forEach((o,idx)=>{opts[idx]={text:o.text,color:o.color,votes:0};});
+  const secs=parseInt(document.getElementById('timer-sel').value);
+  const endsAt=secs?Date.now()+(secs*1000):null;
+  db.ref('sessions/'+sessionCode+'/activeQuestion').set({id:q.id,text:q.text,options:opts,status:'live',launchedAt:Date.now(),timer:secs?{endsAt,total:secs}:null});
+  document.getElementById('active-q').style.display='block';
+  document.getElementById('active-q-text').textContent=q.text;
+  document.getElementById('close-btn').disabled=false;
+  document.getElementById('results-btn').disabled=false;
+  document.getElementById('close-btn2').disabled=false;
+  startTimer(secs);
   listenVotes();
+  toast('▶ Question launched!');
 }
 
-function listenVotes() {
-  if (votesListener) {
-    db.ref('sessions/' + sessionCode + '/activeQuestion/options').off('value', votesListener);
-  }
-  votesListener = db.ref('sessions/' + sessionCode + '/activeQuestion/options').on('value', snap => {
-    if (!snap.val()) return;
-    const opts = snap.val();
-    updateResultsUI(opts);
+function listenVotes(){
+  if(votesRef) db.ref('sessions/'+sessionCode+'/activeQuestion/options').off('value',votesRef);
+  votesRef=db.ref('sessions/'+sessionCode+'/activeQuestion/options').on('value',s=>{
+    if(s.val()) updateResults(s.val());
   });
 }
 
-function updateResultsUI(opts) {
-  if (!activeQuestion) return;
-  const labels = Object.values(opts).map(o => o.text);
-  const data = Object.values(opts).map(o => o.votes || 0);
-  const colors = Object.values(opts).map(o => o.color);
-  const total = data.reduce((a,b) => a+b, 0);
-  document.getElementById('total-votes-num').textContent = total;
-
-  const tally = document.getElementById('vote-tally');
-  tally.innerHTML = Object.values(opts).map((o,i) => `
-    <div class="tally-row">
+function updateResults(opts){
+  const labels=Object.values(opts).map(o=>o.text);
+  const data=Object.values(opts).map(o=>o.votes||0);
+  const colors=Object.values(opts).map(o=>o.color);
+  const total=data.reduce((a,b)=>a+b,0);
+  document.getElementById('total-votes').textContent=total;
+  document.getElementById('tally').innerHTML=Object.values(opts).map(o=>{
+    const pct=total?Math.round((o.votes||0)/total*100):0;
+    return `<div class="tally-row">
       <div class="tally-dot" style="background:${o.color}"></div>
-      <div class="tally-label" style="font-size:13px">${o.text}</div>
-      <div class="tally-count">${o.votes||0}</div>
-      <div class="tally-pct">${total ? Math.round((o.votes||0)/total*100) : 0}%</div>
-    </div>`).join('');
-
-  if (chart) {
-    chart.data.labels = labels;
-    chart.data.datasets[0].data = data;
-    chart.data.datasets[0].backgroundColor = colors;
+      <div class="tally-text">${o.text}</div>
+      <div class="tally-n">${o.votes||0}</div>
+      <div class="tally-pct">${pct}%</div>
+    </div>`;
+  }).join('');
+  if(chart){
+    chart.data.labels=labels;
+    chart.data.datasets[0].data=data;
+    chart.data.datasets[0].backgroundColor=colors;
     chart.update('active');
   } else {
-    const ctx = document.getElementById('resultsChart').getContext('2d');
-    chart = new Chart(ctx, {
-      type: 'bar',
-      data: { labels, datasets: [{ data, backgroundColor: colors, borderRadius: 8, borderSkipped: false }] },
-      options: {
-        responsive: true, maintainAspectRatio: false,
-        plugins: { legend: { display: false } },
-        scales: {
-          x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a8899', font: { family: "'Sora',sans-serif", size: 13 } } },
-          y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a8899', font: { family: "'Sora',sans-serif" }, stepSize: 1 }, beginAtZero: true }
+    chart=new Chart(document.getElementById('myChart').getContext('2d'),{
+      type:'bar',
+      data:{labels,datasets:[{data,backgroundColor:colors,borderRadius:8,borderSkipped:false}]},
+      options:{
+        responsive:true,maintainAspectRatio:false,
+        plugins:{legend:{display:false}},
+        scales:{
+          x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#6b7280',font:{family:"'Plus Jakarta Sans',sans-serif",size:13,weight:'500'}}},
+          y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#6b7280',font:{family:"'Plus Jakarta Sans',sans-serif"},stepSize:1},beginAtZero:true}
         },
-        animation: { duration: 400 }
+        animation:{duration:300}
       }
     });
   }
 }
 
-function viewResults() {
-  document.getElementById('config-screen').style.display = 'none';
-  document.getElementById('results-screen').style.display = 'flex';
-  document.getElementById('results-q-text').textContent = activeQuestion ? activeQuestion.text : '—';
+function viewResults(){
+  document.getElementById('config-screen').style.display='none';
+  document.getElementById('results-screen').style.display='flex';
+  document.getElementById('res-q-text').textContent=activeQ?activeQ.text:'—';
 }
 
-function backToDashboard() {
-  document.getElementById('config-screen').style.display = 'flex';
-  document.getElementById('results-screen').style.display = 'none';
+function backToDash(){
+  document.getElementById('config-screen').style.display='flex';
+  document.getElementById('results-screen').style.display='none';
 }
 
-function closeQuestion() {
-  if (!db || !sessionCode) return;
-  db.ref('sessions/' + sessionCode + '/activeQuestion/status').set('closed');
-  document.querySelector('.status-dot').className = 'status-dot closed';
-  document.getElementById('results-status-dot').className = 'status-dot closed';
-  document.getElementById('results-status-label').textContent = 'CLOSED';
-  document.getElementById('close-btn').disabled = true;
-  showToast('⏹ Voting closed');
+function closeQ(){
+  if(!db||!sessionCode) return;
+  stopTimer();
+  db.ref('sessions/'+sessionCode+'/activeQuestion').update({status:'closed','timer':null});
+  document.getElementById('res-status').innerHTML='⏹ Voting closed';
+  document.getElementById('close-btn').disabled=true;
+  document.getElementById('close-btn2').disabled=true;
+  document.getElementById('active-q').style.display='none';
+  toast('⏹ Voting closed');
 }
 
-function newSession() {
-  if (votesListener) db.ref('sessions/' + sessionCode + '/activeQuestion/options').off('value', votesListener);
-  if (participantsListener) db.ref('sessions/' + sessionCode + '/participants').off('value', participantsListener);
-  activeQuestion = null;
-  if (chart) { chart.destroy(); chart = null; }
-  document.getElementById('active-q-info').style.display = 'none';
-  document.getElementById('close-btn').disabled = true;
-  document.getElementById('results-btn').disabled = true;
+function newSession(){
+  stopTimer();
+  if(votesRef) db.ref('sessions/'+sessionCode+'/activeQuestion/options').off('value',votesRef);
+  activeQ=null;
+  if(chart){chart.destroy();chart=null;}
+  document.getElementById('active-q').style.display='none';
+  document.getElementById('close-btn').disabled=true;
+  document.getElementById('results-btn').disabled=true;
   startSession();
+  toast('🔄 New session started!');
 }
 
-function copyJoinLink() {
-  const url = window.location.href.replace('trainer.html', 'participant.html') + '?code=' + sessionCode;
-  navigator.clipboard.writeText(url).then(() => showToast('Join link copied!'));
+function copyLink(){
+  const url=window.location.href.replace('trainer.html','participant.html')+'?code='+sessionCode;
+  navigator.clipboard.writeText(url).then(()=>toast('✓ Link copied!'));
 }
 
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
+function toast(msg){
+  const t=document.createElement('div');
+  t.className='toast';t.textContent=msg;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2800);
+  setTimeout(()=>t.remove(),2800);
 }
 </script>
 </body>

@@ -4,273 +4,306 @@
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
 <title>PollRoom — Join</title>
-<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=Sora:wght@400;500;600;700&display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet"/>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
 <style>
-  :root {
-    --bg: #0d0d0f;
-    --surface: #16161a;
-    --surface2: #1e1e24;
-    --border: rgba(255,255,255,0.07);
-    --accent: #7c6af7;
-    --accent2: #f7a26a;
-    --text: #f0eff4;
-    --muted: #8a8899;
-    --green: #5cf0a0;
-    --red: #f05c7a;
-    --radius: 14px;
-    --font: 'Sora', sans-serif;
-    --mono: 'DM Mono', monospace;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1rem; }
+:root {
+  --bg: #f5f6fa;
+  --white: #ffffff;
+  --border: #e4e6ef;
+  --text: #1a1d2e;
+  --muted: #6b7280;
+  --accent: #4f46e5;
+  --accent-light: #eef2ff;
+  --green: #059669;
+  --green-light: #ecfdf5;
+  --red: #dc2626;
+  --red-light: #fef2f2;
+  --orange: #ea580c;
+  --shadow: 0 1px 3px rgba(0,0,0,0.08);
+  --shadow-md: 0 4px 12px rgba(0,0,0,0.1);
+  --radius: 14px;
+  --font: 'Plus Jakarta Sans', sans-serif;
+  --mono: 'JetBrains Mono', monospace;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { background: var(--bg); color: var(--text); font-family: var(--font); min-height: 100vh; display: flex; align-items: center; justify-content: center; padding: 1.25rem; }
 
-  .container { width: 100%; max-width: 480px; }
-  .logo { text-align: center; font-size: 1.2rem; font-weight: 700; margin-bottom: 2rem; }
-  .logo span { color: var(--accent); }
+.wrap { width: 100%; max-width: 440px; }
 
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 2rem; }
+.logo { text-align: center; font-size: 1.1rem; font-weight: 700; margin-bottom: 1.75rem; }
+.logo em { color: var(--accent); font-style: normal; }
 
-  h2 { font-size: 1rem; font-weight: 600; margin-bottom: 0.5rem; }
-  p.sub { font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.6; }
+.card { background: var(--white); border: 1px solid var(--border); border-radius: var(--radius); padding: 1.75rem; box-shadow: var(--shadow-md); }
 
-  .form-group { margin-bottom: 1rem; }
-  label { font-size: 12px; color: var(--muted); display: block; margin-bottom: 6px; font-family: var(--mono); }
-  input {
-    width: 100%; padding: 12px 16px; background: var(--surface2);
-    border: 1px solid var(--border); border-radius: 10px;
-    color: var(--text); font-family: var(--font); font-size: 15px;
-    outline: none; transition: border .2s; text-align: center;
-    letter-spacing: 0.08em;
-  }
-  input:focus { border-color: var(--accent); }
-  input#code-input { font-family: var(--mono); font-size: 1.6rem; font-weight: 500; letter-spacing: 0.2em; text-transform: uppercase; }
+h2 { font-size: 1rem; font-weight: 700; margin-bottom: 4px; }
+.sub { font-size: 13px; color: var(--muted); margin-bottom: 1.5rem; line-height: 1.6; }
 
-  .btn { display: flex; align-items: center; justify-content: center; gap: 6px; width: 100%; padding: 13px 18px; border-radius: 10px; font-family: var(--font); font-size: 15px; font-weight: 600; cursor: pointer; border: none; transition: all .15s; }
-  .btn-accent { background: var(--accent); color: #fff; }
-  .btn-accent:hover { opacity: .85; }
-  .btn:disabled { opacity: .4; cursor: not-allowed; }
+label { font-size: 12px; font-weight: 600; color: var(--muted); display: block; margin-bottom: 5px; }
+.form-group { margin-bottom: 1rem; }
+input {
+  width: 100%; padding: 11px 14px; background: var(--bg);
+  border: 1.5px solid var(--border); border-radius: 9px;
+  color: var(--text); font-family: var(--font); font-size: 15px;
+  outline: none; transition: border-color .15s, box-shadow .15s;
+}
+input:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(79,70,229,0.08); background: var(--white); }
+#code-input { font-family: var(--mono); font-size: 1.5rem; font-weight: 700; letter-spacing: 0.2em; text-transform: uppercase; text-align: center; }
 
-  /* WAITING SCREEN */
-  #waiting-screen { display: none; text-align: center; }
-  .pulse-ring { width: 80px; height: 80px; border-radius: 50%; border: 2px solid var(--accent); margin: 0 auto 1.5rem; display: flex; align-items: center; justify-content: center; position: relative; }
-  .pulse-ring::after { content:''; position: absolute; inset: -8px; border-radius: 50%; border: 1px solid var(--accent); opacity: .3; animation: pulsering 2s infinite; }
-  @keyframes pulsering { 0%{transform:scale(1);opacity:.3}50%{transform:scale(1.1);opacity:.1}100%{transform:scale(1);opacity:.3} }
-  .pulse-icon { font-size: 2rem; }
-  .name-display { font-family: var(--mono); font-size: 13px; color: var(--accent); margin-top: 1rem; }
+.btn { width: 100%; padding: 13px; border-radius: 9px; font-family: var(--font); font-size: 15px; font-weight: 700; cursor: pointer; border: none; transition: all .15s; display: flex; align-items: center; justify-content: center; gap: 6px; }
+.btn-primary { background: var(--accent); color: #fff; box-shadow: 0 2px 6px rgba(79,70,229,0.3); }
+.btn-primary:hover { background: #4338ca; }
+.btn-outline { background: var(--white); border: 1.5px solid var(--border); color: var(--text); font-size: 13px; padding: 9px; }
+.btn-outline:hover { border-color: #9ca3af; }
+.btn:disabled { opacity: .4; cursor: not-allowed; }
 
-  /* QUESTION SCREEN */
-  #question-screen { display: none; }
-  .q-header { margin-bottom: 1.75rem; }
-  .q-number { font-size: 11px; font-family: var(--mono); color: var(--accent); text-transform: uppercase; letter-spacing: 0.1em; margin-bottom: 8px; }
-  .q-text { font-size: 1.15rem; font-weight: 600; line-height: 1.45; }
-  .options-list { display: flex; flex-direction: column; gap: 10px; }
-  .opt-btn {
-    width: 100%; padding: 16px 18px; border-radius: 12px;
-    border: 1.5px solid var(--border); background: var(--surface2);
-    color: var(--text); font-family: var(--font); font-size: 15px; font-weight: 500;
-    cursor: pointer; text-align: left; transition: all .2s; display: flex; align-items: center; gap: 12px;
-  }
-  .opt-btn:hover:not(:disabled) { border-color: rgba(124,106,247,0.5); background: rgba(124,106,247,0.08); transform: translateY(-1px); }
-  .opt-btn.selected { border-color: var(--accent); background: rgba(124,106,247,0.15); }
-  .opt-btn.correct { border-color: var(--green); background: rgba(92,240,160,0.1); }
-  .opt-btn:disabled { cursor: not-allowed; }
-  .opt-dot { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
-  .opt-bar-wrap { flex: 1; }
-  .opt-bar { height: 4px; border-radius: 4px; margin-top: 6px; transition: width .5s ease; }
-  .opt-pct { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-left: auto; }
-  .voted-note { margin-top: 1.25rem; text-align: center; font-size: 13px; color: var(--muted); }
-  .voted-note strong { color: var(--green); }
+/* WAITING */
+#waiting { display: none; text-align: center; }
+.pulse-wrap { width: 72px; height: 72px; border-radius: 50%; border: 2px solid #c7d2fe; margin: 0 auto 1.25rem; display: flex; align-items: center; justify-content: center; position: relative; }
+.pulse-wrap::after { content:''; position:absolute; inset:-8px; border-radius:50%; border:1px solid #c7d2fe; opacity:.4; animation: pulse 2s infinite; }
+@keyframes pulse { 0%,100%{transform:scale(1);opacity:.4}50%{transform:scale(1.08);opacity:.1} }
+.pulse-icon { font-size: 1.75rem; }
+.name-tag { display: inline-block; margin-top: 1rem; background: var(--accent-light); color: var(--accent); font-size: 12px; font-weight: 700; padding: 4px 12px; border-radius: 20px; border: 1px solid #c7d2fe; }
 
-  /* CLOSED SCREEN */
-  #closed-screen { display: none; text-align: center; }
-  .result-icon { font-size: 3rem; margin-bottom: 1rem; }
-  .winner-box { background: rgba(124,106,247,0.1); border: 1px solid rgba(124,106,247,0.25); border-radius: 10px; padding: 1rem; margin: 1rem 0; }
-  .winner-label { font-size: 12px; color: var(--muted); font-family: var(--mono); margin-bottom: 4px; }
-  .winner-text { font-size: 1.1rem; font-weight: 600; color: var(--accent); }
+/* QUESTION */
+#question { display: none; }
+.q-num { font-size: 11px; font-weight: 700; color: var(--accent); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 8px; }
+.q-text { font-size: 1.1rem; font-weight: 700; line-height: 1.45; margin-bottom: 1.25rem; }
 
-  .toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 12px 16px; font-size: 13px; z-index: 999; animation: slideIn .3s ease; }
-  @keyframes slideIn { from{transform:translateY(20px);opacity:0}to{transform:translateY(0);opacity:1} }
+/* TIMER BAR on question */
+.q-timer { margin-bottom: 1rem; display: none; }
+.q-timer-top { display: flex; justify-content: space-between; align-items: center; margin-bottom: 5px; }
+.q-timer-label { font-size: 11px; font-weight: 600; color: var(--muted); }
+.q-timer-num { font-family: var(--mono); font-size: 13px; font-weight: 700; }
+.q-tbar-wrap { height: 5px; background: var(--bg); border-radius: 10px; overflow: hidden; border: 1px solid var(--border); }
+.q-tbar { height: 100%; border-radius: 10px; background: var(--accent); transition: width 1s linear, background .4s; }
 
-  .firebase-note { background: var(--surface2); border: 1px solid rgba(247,162,106,0.25); border-radius: 10px; padding: 1rem; margin-bottom: 1.5rem; }
-  .firebase-note p { font-size: 12px; color: var(--muted); line-height: 1.6; }
-  .firebase-note strong { color: var(--accent2); }
+.options { display: flex; flex-direction: column; gap: 10px; }
+.opt-btn {
+  width: 100%; padding: 15px 16px; border-radius: 11px;
+  border: 1.5px solid var(--border); background: var(--bg);
+  color: var(--text); font-family: var(--font); font-size: 15px; font-weight: 500;
+  cursor: pointer; text-align: left; transition: all .18s;
+  display: flex; align-items: center; gap: 12px;
+}
+.opt-btn:hover:not(:disabled) { border-color: #a5b4fc; background: var(--accent-light); transform: translateY(-1px); box-shadow: 0 2px 8px rgba(79,70,229,0.1); }
+.opt-btn.selected { border-color: var(--accent); background: var(--accent-light); }
+.opt-btn:disabled { cursor: not-allowed; }
+.opt-color { width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0; }
+.opt-body { flex: 1; }
+.opt-bar-track { height: 4px; background: rgba(0,0,0,0.06); border-radius: 4px; margin-top: 6px; overflow: hidden; }
+.opt-bar-fill { height: 100%; border-radius: 4px; transition: width .5s ease; }
+.opt-pct { font-size: 12px; color: var(--muted); font-family: var(--mono); font-weight: 600; margin-left: auto; flex-shrink: 0; }
+
+.voted-msg { margin-top: 1rem; text-align: center; font-size: 13px; color: var(--green); font-weight: 600; background: var(--green-light); border: 1px solid #a7f3d0; border-radius: 9px; padding: 10px; display: none; }
+
+/* CLOSED */
+#closed { display: none; text-align: center; }
+.closed-icon { font-size: 2.5rem; margin-bottom: 1rem; }
+.winner-box { background: var(--accent-light); border: 1.5px solid #c7d2fe; border-radius: 10px; padding: 1rem; margin: 1rem 0; }
+.winner-label { font-size: 11px; color: #6366f1; font-weight: 700; text-transform: uppercase; letter-spacing: 0.07em; margin-bottom: 5px; }
+.winner-text { font-size: 1.05rem; font-weight: 700; color: var(--accent); }
+
+.toast { position: fixed; bottom: 1.5rem; right: 1.5rem; background: #1a1d2e; color: #fff; border-radius: 10px; padding: 10px 16px; font-size: 13px; font-weight: 500; z-index: 999; box-shadow: 0 4px 12px rgba(0,0,0,0.15); animation: tin .25s ease; }
+@keyframes tin { from{transform:translateY(10px);opacity:0}to{transform:translateY(0);opacity:1} }
 </style>
 </head>
 <body>
-<div class="container">
-  <div class="logo">Poll<span>Room</span></div>
+<div class="wrap">
+  <div class="logo">Poll<em>Room</em></div>
 
-  <!-- JOIN SCREEN -->
-  <div id="join-screen" class="card">
-    <h2>Join a session</h2>
-    <p class="sub">Enter the session code your trainer shared with you.</p>
-
+  <!-- JOIN -->
+  <div class="card" id="join">
+    <h2>Join the session</h2>
+    <p class="sub">Enter your name and the session code your trainer shared.</p>
     <div class="form-group">
       <label>Your name</label>
-      <input type="text" id="name-input" placeholder="e.g. Priya"/>
+      <input type="text" id="name-input" placeholder="e.g. Priya Sharma" autocomplete="name"/>
     </div>
     <div class="form-group">
       <label>Session code</label>
       <input type="text" id="code-input" placeholder="ABC123" maxlength="6"/>
     </div>
-    <button class="btn btn-accent" onclick="joinSession()">Join session →</button>
+    <button class="btn btn-primary" onclick="joinSession()">Join session →</button>
   </div>
 
-  <!-- WAITING SCREEN -->
-  <div id="waiting-screen" class="card">
-    <div class="pulse-ring"><div class="pulse-icon">⏳</div></div>
+  <!-- WAITING -->
+  <div class="card" id="waiting">
+    <div class="pulse-wrap"><div class="pulse-icon">⏳</div></div>
     <h2>You're in!</h2>
     <p class="sub">Waiting for the trainer to launch a question. Stay on this page.</p>
-    <div class="name-display" id="waiting-name"></div>
+    <div class="name-tag" id="name-tag"></div>
   </div>
 
-  <!-- QUESTION SCREEN -->
-  <div id="question-screen" class="card">
-    <div class="q-header">
-      <div class="q-number">Question</div>
-      <div class="q-text" id="q-text-display">—</div>
+  <!-- QUESTION -->
+  <div class="card" id="question">
+    <div class="q-num">Question</div>
+    <div class="q-text" id="q-text">—</div>
+    <div class="q-timer" id="q-timer">
+      <div class="q-timer-top">
+        <span class="q-timer-label">⏱ Time remaining</span>
+        <span class="q-timer-num" id="q-timer-num">30</span>
+      </div>
+      <div class="q-tbar-wrap"><div class="q-tbar" id="q-tbar" style="width:100%"></div></div>
     </div>
-    <div class="options-list" id="options-list"></div>
-    <div class="voted-note" id="voted-note" style="display:none">
-      <strong>✓ Vote received!</strong> Waiting for others...
-    </div>
+    <div class="options" id="options"></div>
+    <div class="voted-msg" id="voted-msg">✓ Vote received! Waiting for others...</div>
   </div>
 
-  <!-- CLOSED SCREEN -->
-  <div id="closed-screen" class="card">
-    <div class="result-icon">🏁</div>
+  <!-- CLOSED -->
+  <div class="card" id="closed">
+    <div class="closed-icon">🏁</div>
     <h2>Voting closed</h2>
     <div class="winner-box">
       <div class="winner-label">Most votes went to</div>
       <div class="winner-text" id="winner-text">—</div>
     </div>
-    <p class="sub">Wait for the trainer to launch the next question.</p>
+    <p class="sub">Your trainer will launch the next question shortly.</p>
   </div>
 </div>
 
 <script>
-let db = null;
-let sessionCode = null;
-let participantId = null;
-let participantName = null;
-let hasVoted = false;
-let currentOptions = null;
-let questionListener = null;
+let db=null, sessionCode=null, pid=null, hasVoted=false, curOpts=null;
+let qListener=null, timerInt=null;
 
-function show(id) {
-  ['join-screen','waiting-screen','question-screen','closed-screen'].forEach(s => {
-    document.getElementById(s).style.display = s === id ? 'block' : 'none';
+function show(id){
+  ['join','waiting','question','closed'].forEach(s=>{
+    document.getElementById(s).style.display=s===id?'block':'none';
   });
 }
 
-function joinSession() {
-  const name = document.getElementById('name-input').value.trim();
-  const code = document.getElementById('code-input').value.trim().toUpperCase();
+function joinSession(){
+  const name=document.getElementById('name-input').value.trim();
+  const code=document.getElementById('code-input').value.trim().toUpperCase();
+  if(!name){toast('Enter your name');return;}
+  if(!code||code.length!==6){toast('Enter the 6-character code');return;}
 
-  if (!name) { showToast('Enter your name'); return; }
-  if (!code || code.length !== 6) { showToast('Enter the 6-character code'); return; }
-
-  try {
-    if (!firebase.apps.length) {
+  try{
+    if(!firebase.apps.length){
       firebase.initializeApp({
-        apiKey: "AIzaSyAsBWw9Kj2V21Z78Au6CieeTKC8tTPNJsE",
-        authDomain: "trainingpolls-884c9.firebaseapp.com",
-        databaseURL: "https://trainingpolls-884c9-default-rtdb.firebaseio.com",
-        projectId: "trainingpolls-884c9",
-        storageBucket: "trainingpolls-884c9.firebasestorage.app",
-        messagingSenderId: "892105298380",
-        appId: "1:892105298380:web:ad9bcfd8d59ad94648cd69"
+        apiKey:"AIzaSyAsBWw9Kj2V21Z78Au6CieeTKC8tTPNJsE",
+        authDomain:"trainingpolls-884c9.firebaseapp.com",
+        databaseURL:"https://trainingpolls-884c9-default-rtdb.firebaseio.com",
+        projectId:"trainingpolls-884c9",
+        storageBucket:"trainingpolls-884c9.firebasestorage.app",
+        messagingSenderId:"892105298380",
+        appId:"1:892105298380:web:ad9bcfd8d59ad94648cd69"
       });
     }
-    db = firebase.database();
-  } catch(e) { showToast('Firebase error: ' + e.message); return; }
+    db=firebase.database();
+  }catch(e){toast('Connection error: '+e.message);return;}
 
-  db.ref('sessions/' + code).once('value').then(snap => {
-    if (!snap.exists()) { showToast('Session not found'); return; }
-    sessionCode = code;
-    participantName = name;
-    participantId = 'p_' + Date.now() + '_' + Math.random().toString(36).substring(2,6);
-    db.ref('sessions/' + sessionCode + '/participants/' + participantId).set({ name, joinedAt: Date.now() });
-    db.ref('sessions/' + sessionCode + '/participants/' + participantId).onDisconnect().remove();
-    document.getElementById('waiting-name').textContent = 'Logged in as: ' + name;
-    show('waiting-screen');
-    listenForQuestion();
-  }).catch(() => showToast('Could not connect to session'));
+  db.ref('sessions/'+code).once('value').then(s=>{
+    if(!s.exists()){toast('Session not found — check the code');return;}
+    sessionCode=code;
+    pid='p_'+Date.now()+'_'+Math.random().toString(36).substring(2,6);
+    db.ref('sessions/'+code+'/participants/'+pid).set({name,joinedAt:Date.now()});
+    db.ref('sessions/'+code+'/participants/'+pid).onDisconnect().remove();
+    document.getElementById('name-tag').textContent='Logged in as '+name;
+    show('waiting');
+    listenForQ();
+  }).catch(()=>toast('Could not connect — try again'));
 }
 
-function listenForQuestion() {
-  if (questionListener) questionListener();
-  questionListener = db.ref('sessions/' + sessionCode + '/activeQuestion').on('value', snap => {
-    const q = snap.val();
-    if (!q) { show('waiting-screen'); return; }
+function listenForQ(){
+  if(qListener) qListener();
+  qListener=db.ref('sessions/'+sessionCode+'/activeQuestion').on('value',snap=>{
+    const q=snap.val();
+    if(!q){show('waiting');return;}
 
-    if (q.status === 'closed') {
-      const opts = Object.values(q.options || {});
-      const max = Math.max(...opts.map(o => o.votes || 0));
-      const winner = opts.find(o => (o.votes || 0) === max);
-      document.getElementById('winner-text').textContent = winner ? winner.text : '—';
-      show('closed-screen');
-      hasVoted = false;
-      return;
+    if(q.status==='closed'){
+      stopParticipantTimer();
+      document.getElementById('q-timer').style.display='none';
+      const opts=Object.values(q.options||{});
+      const max=Math.max(...opts.map(o=>o.votes||0));
+      const winner=opts.find(o=>(o.votes||0)===max);
+      document.getElementById('winner-text').textContent=winner?winner.text:'—';
+      show('closed'); hasVoted=false; return;
     }
 
-    if (q.status === 'live') {
-      hasVoted = false;
-      currentOptions = q.options;
-      document.getElementById('q-text-display').textContent = q.text;
-      document.getElementById('voted-note').style.display = 'none';
-      renderOptions(q.options, false);
-      show('question-screen');
+    if(q.status==='live'){
+      hasVoted=false; curOpts=q.options;
+      document.getElementById('q-text').textContent=q.text;
+      document.getElementById('voted-msg').style.display='none';
+      renderOptions(q.options,false);
+      show('question');
 
-      db.ref('sessions/' + sessionCode + '/activeQuestion/options').on('value', snap2 => {
-        if (snap2.val()) {
-          currentOptions = snap2.val();
-          renderOptions(snap2.val(), hasVoted);
-        }
+      // Listen to timer from Firebase
+      stopParticipantTimer();
+      if(q.timer&&q.timer.endsAt){
+        startParticipantTimer(q.timer.endsAt, q.timer.total);
+      } else {
+        document.getElementById('q-timer').style.display='none';
+      }
+
+      db.ref('sessions/'+sessionCode+'/activeQuestion/options').on('value',s2=>{
+        if(s2.val()){curOpts=s2.val();renderOptions(s2.val(),hasVoted);}
       });
     }
   });
 }
 
-function renderOptions(opts, voted) {
-  const list = document.getElementById('options-list');
-  const total = Object.values(opts).reduce((a,o) => a+(o.votes||0), 0);
-  list.innerHTML = Object.entries(opts).map(([key, o]) => {
-    const pct = total ? Math.round((o.votes||0)/total*100) : 0;
-    return `<button class="opt-btn ${voted ? 'disabled' : ''}" onclick="castVote('${key}')" ${voted ? 'disabled' : ''}>
-      <div class="opt-dot" style="background:${o.color}"></div>
-      <div class="opt-bar-wrap">
-        <div style="font-size:15px;font-weight:500">${o.text}</div>
-        ${voted ? `<div class="opt-bar" style="background:${o.color};width:${pct}%;max-width:100%"></div>` : ''}
+/* Participant timer synced from Firebase endsAt */
+function startParticipantTimer(endsAt, total){
+  stopParticipantTimer();
+  const timerEl=document.getElementById('q-timer');
+  const numEl=document.getElementById('q-timer-num');
+  const barEl=document.getElementById('q-tbar');
+  timerEl.style.display='block';
+
+  function tick(){
+    const remaining=Math.max(0,Math.round((endsAt-Date.now())/1000));
+    numEl.textContent=remaining;
+    const pct=total?Math.min(100,(remaining/total)*100):0;
+    barEl.style.width=pct+'%';
+    if(remaining<=5){barEl.style.background='#dc2626';numEl.style.color='#dc2626';}
+    else if(remaining<=10){barEl.style.background='#ea580c';numEl.style.color='#ea580c';}
+    else{barEl.style.background='#4f46e5';numEl.style.color='var(--text)';}
+    if(remaining>0) timerInt=setTimeout(tick,500);
+    else timerEl.style.display='none';
+  }
+  tick();
+}
+
+function stopParticipantTimer(){
+  clearTimeout(timerInt); timerInt=null;
+  document.getElementById('q-timer').style.display='none';
+}
+
+function renderOptions(opts,voted){
+  const total=Object.values(opts).reduce((a,o)=>a+(o.votes||0),0);
+  document.getElementById('options').innerHTML=Object.entries(opts).map(([key,o])=>{
+    const pct=total?Math.round((o.votes||0)/total*100):0;
+    return `<button class="opt-btn${voted?' selected':''}" onclick="castVote('${key}')" ${voted?'disabled':''}>
+      <div class="opt-color" style="background:${o.color}"></div>
+      <div class="opt-body">
+        <div>${o.text}</div>
+        ${voted?`<div class="opt-bar-track"><div class="opt-bar-fill" style="background:${o.color};width:${pct}%"></div></div>`:''}
       </div>
-      ${voted ? `<div class="opt-pct">${pct}%</div>` : ''}
+      ${voted?`<div class="opt-pct">${pct}%</div>`:''}
     </button>`;
   }).join('');
 }
 
-function castVote(optionKey) {
-  if (hasVoted || !db || !sessionCode) return;
-  hasVoted = true;
-  const ref = db.ref('sessions/' + sessionCode + '/activeQuestion/options/' + optionKey + '/votes');
-  ref.transaction(v => (v || 0) + 1);
-  document.getElementById('voted-note').style.display = 'block';
-  renderOptions(currentOptions, true);
-  showToast('✓ Vote cast!');
+function castVote(key){
+  if(hasVoted||!db||!sessionCode) return;
+  hasVoted=true;
+  db.ref('sessions/'+sessionCode+'/activeQuestion/options/'+key+'/votes').transaction(v=>(v||0)+1);
+  document.getElementById('voted-msg').style.display='block';
+  renderOptions(curOpts,true);
+  toast('✓ Vote cast!');
 }
 
-function showToast(msg) {
-  const t = document.createElement('div');
-  t.className = 'toast';
-  t.textContent = msg;
+function toast(msg){
+  const t=document.createElement('div');
+  t.className='toast';t.textContent=msg;
   document.body.appendChild(t);
-  setTimeout(() => t.remove(), 2800);
+  setTimeout(()=>t.remove(),2800);
 }
 
-// Pre-fill from URL params
-const params = new URLSearchParams(window.location.search);
-if (params.get('code')) document.getElementById('code-input').value = params.get('code');
+const params=new URLSearchParams(window.location.search);
+if(params.get('code')) document.getElementById('code-input').value=params.get('code');
 </script>
 </body>
 </html>
